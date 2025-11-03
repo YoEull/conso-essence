@@ -37,11 +37,11 @@
     const apiURL = "https://script.google.com/macros/s/AKfycbw_IbsmCrc_D6P2BpkSv7bjmwXcRTyRiHVcGsBXlf3xSikmO_6dVbWOs-4lQePkqVnY/exec"; // <== remplace ceci par ton URL Google Apps Script
     const vehicles = JSON.parse(localStorage.getItem("vehicles") || '["Ajouter un véhicule…"]');
     const stations = JSON.parse(localStorage.getItem("stations") || '["Ajouter une station…"]');
-
+  
     const vehicleSelect = document.getElementById("vehicle");
     const stationSelect = document.getElementById("station");
     const statusText = document.getElementById("status");
-
+  
     function populateSelect(select, options) {
       select.innerHTML = "";
       options.forEach(v => {
@@ -51,36 +51,70 @@
         select.appendChild(opt);
       });
     }
-
+  
+    // Remplissage initial
     populateSelect(vehicleSelect, vehicles);
     populateSelect(stationSelect, stations);
-
+  
+    // Ajout dynamique d’un véhicule ou d’une station
+    vehicleSelect.addEventListener("change", () => {
+      if (vehicleSelect.value === "Ajouter un véhicule…") {
+        const newVehicle = prompt("Nom du véhicule ?");
+        if (newVehicle && newVehicle.trim() !== "") {
+          vehicles.splice(vehicles.length - 1, 0, newVehicle.trim());
+          localStorage.setItem("vehicles", JSON.stringify(vehicles));
+          populateSelect(vehicleSelect, vehicles);
+          vehicleSelect.value = newVehicle.trim();
+        } else {
+          vehicleSelect.selectedIndex = 0;
+        }
+      }
+    });
+  
+    stationSelect.addEventListener("change", () => {
+      if (stationSelect.value === "Ajouter une station…") {
+        const newStation = prompt("Nom de la station ?");
+        if (newStation && newStation.trim() !== "") {
+          stations.splice(stations.length - 1, 0, newStation.trim());
+          localStorage.setItem("stations", JSON.stringify(stations));
+          populateSelect(stationSelect, stations);
+          stationSelect.value = newStation.trim();
+        } else {
+          stationSelect.selectedIndex = 0;
+        }
+      }
+    });
+  
     async function sendData() {
       const vehicle = vehicleSelect.value;
       const mileage = document.getElementById("mileage").value;
       const price = document.getElementById("price").value;
       const liters = document.getElementById("liters").value;
       const station = stationSelect.value;
-
+  
       if (!vehicle || !mileage || !price || !liters || !station) {
         statusText.textContent = "⚠️ Merci de remplir tous les champs.";
         return;
       }
-
+  
       const payload = { vehicle, mileage, price_per_liter: price, liters, station };
-
+  
       try {
-        const res = await fetch(apiURL, {
+        await fetch(apiURL, {
           method: "POST",
           mode: "no-cors",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify(payload)
         });
         statusText.textContent = "✅ Données envoyées !";
+        document.getElementById("mileage").value = "";
+        document.getElementById("price").value = "";
+        document.getElementById("liters").value = "";
       } catch (err) {
         statusText.textContent = "❌ Erreur d’envoi.";
       }
     }
   </script>
+
 </body>
 </html>
