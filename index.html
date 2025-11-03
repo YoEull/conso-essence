@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Conso Essence</title>
+  <style>
+    body { font-family: sans-serif; max-width: 600px; margin: 30px auto; padding: 10px; }
+    input, select, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; }
+    button { background: #007bff; color: white; border: none; cursor: pointer; }
+    button:hover { background: #0056b3; }
+  </style>
+</head>
+<body>
+  <h2>🚗 Suivi Conso Essence</h2>
+
+  <label>Véhicule :</label>
+  <select id="vehicle"></select>
+
+  <label>Kilométrage :</label>
+  <input id="mileage" type="number" inputmode="numeric" placeholder="ex: 128500">
+
+  <label>Prix au litre (€) :</label>
+  <input id="price" type="number" step="0.01" inputmode="decimal" placeholder="ex: 1.89">
+
+  <label>Litres :</label>
+  <input id="liters" type="number" step="0.01" inputmode="decimal" placeholder="ex: 42.5">
+
+  <label>Station :</label>
+  <select id="station"></select>
+
+  <button onclick="sendData()">📤 Envoyer</button>
+
+  <p id="status"></p>
+
+  <script>
+    const apiURL = "https://script.google.com/macros/s/AKfycbw_IbsmCrc_D6P2BpkSv7bjmwXcRTyRiHVcGsBXlf3xSikmO_6dVbWOs-4lQePkqVnY/exec"; // <== remplace ceci par ton URL Google Apps Script
+    const vehicles = JSON.parse(localStorage.getItem("vehicles") || '["Ajouter un véhicule…"]');
+    const stations = JSON.parse(localStorage.getItem("stations") || '["Ajouter une station…"]');
+
+    const vehicleSelect = document.getElementById("vehicle");
+    const stationSelect = document.getElementById("station");
+    const statusText = document.getElementById("status");
+
+    function populateSelect(select, options) {
+      select.innerHTML = "";
+      options.forEach(v => {
+        const opt = document.createElement("option");
+        opt.value = v;
+        opt.textContent = v;
+        select.appendChild(opt);
+      });
+    }
+
+    populateSelect(vehicleSelect, vehicles);
+    populateSelect(stationSelect, stations);
+
+    async function sendData() {
+      const vehicle = vehicleSelect.value;
+      const mileage = document.getElementById("mileage").value;
+      const price = document.getElementById("price").value;
+      const liters = document.getElementById("liters").value;
+      const station = stationSelect.value;
+
+      if (!vehicle || !mileage || !price || !liters || !station) {
+        statusText.textContent = "⚠️ Merci de remplir tous les champs.";
+        return;
+      }
+
+      const payload = { vehicle, mileage, price_per_liter: price, liters, station };
+
+      try {
+        const res = await fetch(apiURL, {
+          method: "POST",
+          mode: "no-cors",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(payload)
+        });
+        statusText.textContent = "✅ Données envoyées !";
+      } catch (err) {
+        statusText.textContent = "❌ Erreur d’envoi.";
+      }
+    }
+  </script>
+</body>
+</html>
