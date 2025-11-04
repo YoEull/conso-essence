@@ -17,12 +17,12 @@
     const { useState, useEffect } = React;
     
     // ⚠️ REMPLACEZ CETTE URL PAR VOTRE URL GOOGLE SCRIPT
-    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbxWWnLoEgS76YBvmNc589bCTyisRxZBKKBU8naE7baSq9gooJCn41PN54VzSbz4dtnY/exec';
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby5dPFTwmlSzcfYdiGwFsJzxh73saVfMAXT2wjim8D1tLap0tK8IxiYLZr_bjLnqs1S/exec';
     
     function FuelTracker() {
       const [vehicles, setVehicles] = useState([]);
       const [stations, setStations] = useState([]);
-      const [entries, setEntries] = useState([]);
+      const [fills, setFills] = useState([]);
       const [loading, setLoading] = useState(false);
       
       const [selectedVehicle, setSelectedVehicle] = useState('');
@@ -51,7 +51,7 @@
           
           if (data.vehicles) setVehicles(data.vehicles);
           if (data.stations) setStations(data.stations);
-          if (data.entries) setEntries(data.entries);
+          if (data.fills) setFills(data.fills);
         } catch (error) {
           console.error('Erreur chargement:', error);
         } finally {
@@ -131,7 +131,7 @@
         }
 
         setLoading(true);
-        const newEntry = {
+        const newFill = {
           date: new Date().toISOString(),
           vehicle: selectedVehicle,
           mileage: parseFloat(mileage),
@@ -142,14 +142,9 @@
         };
 
         try {
-          await fetch(GOOGLE_SCRIPT_URL, {
-            method: 'POST',
-            mode: 'no-cors',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              action: 'addEntry',
-              entry: newEntry
-            })
+          await fetch(url, {
+            method: 'GET',
+            redirect: 'follow'
           });
 
           setMileage('');
@@ -158,7 +153,7 @@
           setSelectedStation('');
           
           alert('✅ Entrée enregistrée !');
-          setTimeout(() => loadData(), 1000);
+          setTimeout(() => loadData(), 2000);
         } catch (error) {
           alert('Erreur lors de l\'enregistrement.');
         } finally {
@@ -251,21 +246,21 @@
               </div>
             </div>
 
-            {entries.length > 0 && (
+            {fills.length > 0 && (
               <div className="bg-white rounded-2xl shadow-xl p-6">
                 <h2 className="text-lg font-bold text-gray-800 mb-4">Dernières entrées</h2>
                 <div className="space-y-3">
-                  {entries.slice(-5).reverse().map((entry, idx) => (
+                  {fills.slice(-5).reverse().map((fill, idx) => (
                     <div key={idx} className="border-l-4 border-indigo-500 pl-4 py-2">
                       <div className="flex justify-between">
                         <div>
-                          <p className="font-semibold">{entry.vehicle}</p>
-                          <p className="text-sm text-gray-600">{entry.station}</p>
-                          <p className="text-xs text-gray-500">{new Date(entry.date).toLocaleDateString('fr-FR')}</p>
+                          <p className="font-semibold">{fill.vehicle}</p>
+                          <p className="text-sm text-gray-600">{fill.station}</p>
+                          <p className="text-xs text-gray-500">{new Date(fill.date).toLocaleDateString('fr-FR')}</p>
                         </div>
                         <div className="text-right">
-                          <p className="font-bold text-indigo-600">{entry.totalCost} €</p>
-                          <p className="text-xs text-gray-500">{entry.liters}L</p>
+                          <p className="font-bold text-indigo-600">{fill.totalCost} €</p>
+                          <p className="text-xs text-gray-500">{fill.liters}L</p>
                         </div>
                       </div>
                     </div>
