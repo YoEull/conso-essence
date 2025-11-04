@@ -1,120 +1,284 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Conso Essence</title>
-  <style>
-    body { font-family: sans-serif; max-width: 600px; margin: 30px auto; padding: 10px; }
-    input, select, button { width: 100%; padding: 10px; margin: 8px 0; border-radius: 6px; border: 1px solid #ccc; font-size: 16px; }
-    button { background: #007bff; color: white; border: none; cursor: pointer; }
-    button:hover { background: #0056b3; }
-  </style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Suivi Essence</title>
+  <script src="https://cdn.tailwindcss.com"></script>
 </head>
 <body>
-  <h2>🚗 Suivi Conso Essence</h2>
-
-  <label>Véhicule :</label>
-  <select id="vehicle"></select>
-
-  <label>Kilométrage :</label>
-  <input id="mileage" type="number" inputmode="numeric" placeholder="ex: 128500">
-
-  <label>Prix au litre (€) :</label>
-  <input id="price" type="number" step="0.01" inputmode="decimal" placeholder="ex: 1.89">
-
-  <label>Litres :</label>
-  <input id="liters" type="number" step="0.01" inputmode="decimal" placeholder="ex: 42.5">
-
-  <label>Station :</label>
-  <select id="station"></select>
-
-  <button onclick="sendData()">📤 Envoyer</button>
-
-  <p id="status"></p>
-
-  <script>
-    const apiURL = "https://script.google.com/macros/s/AKfycbw_IbsmCrc_D6P2BpkSv7bjmwXcRTyRiHVcGsBXlf3xSikmO_6dVbWOs-4lQePkqVnY/exec"; // <== remplace ceci par ton URL Google Apps Script
-    const vehicles = JSON.parse(localStorage.getItem("vehicles") || '["Ajouter un véhicule…"]');
-    const stations = JSON.parse(localStorage.getItem("stations") || '["Ajouter une station…"]');
+  <div id="root"></div>
   
-    const vehicleSelect = document.getElementById("vehicle");
-    const stationSelect = document.getElementById("station");
-    const statusText = document.getElementById("status");
+  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   
-    function populateSelect(select, options) {
-      select.innerHTML = "";
-      options.forEach(v => {
-        const opt = document.createElement("option");
-        opt.value = v;
-        opt.textContent = v;
-        select.appendChild(opt);
-      });
-    }
-  
-    // Remplissage initial
-    populateSelect(vehicleSelect, vehicles);
-    populateSelect(stationSelect, stations);
-  
-    // Ajout dynamique d’un véhicule ou d’une station
-    vehicleSelect.addEventListener("change", () => {
-      if (vehicleSelect.value === "Ajouter un véhicule…") {
-        const newVehicle = prompt("Nom du véhicule ?");
-        if (newVehicle && newVehicle.trim() !== "") {
-          vehicles.splice(vehicles.length - 1, 0, newVehicle.trim());
-          localStorage.setItem("vehicles", JSON.stringify(vehicles));
-          populateSelect(vehicleSelect, vehicles);
-          vehicleSelect.value = newVehicle.trim();
-        } else {
-          vehicleSelect.selectedIndex = 0;
+  <script type="text/babel">
+    const { useState, useEffect } = React;
+    
+    // ⚠️ REMPLACEZ CETTE URL PAR VOTRE URL GOOGLE SCRIPT
+    const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby3TuULvHeAFFMmP1BMnkKICdGcVq6K2sNvyQ2swuHLcLa4-PxauMQuM6uA3ZVMJDYY/exec';
+    
+    function FuelTracker() {
+      const [vehicles, setVehicles] = useState([]);
+      const [stations, setStations] = useState([]);
+      const [entries, setEntries] = useState([]);
+      const [loading, setLoading] = useState(false);
+      
+      const [selectedVehicle, setSelectedVehicle] = useState('');
+      const [mileage, setMileage] = useState('');
+      const [pricePerLiter, setPricePerLiter] = useState('');
+      const [liters, setLiters] = useState('');
+      const [selectedStation, setSelectedStation] = useState('');
+      
+      const [showNewVehicle, setShowNewVehicle] = useState(false);
+      const [newVehicleName, setNewVehicleName] = useState('');
+      const [showNewStation, setShowNewStation] = useState(false);
+      const [newStationName, setNewStationName] = useState('');
+      const [findingStation, setFindingStation] = useState(false);
+
+      useEffect(() => {
+        loadData();
+        const lastVehicle = localStorage.getItem('lastVehicle');
+        if (lastVehicle) setSelectedVehicle(lastVehicle);
+      }, []);
+
+      const loadData = async () => {
+        setLoading(true);
+        try {
+          const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getData`);
+          const data = await response.json();
+          
+          if (data.vehicles) setVehicles(data.vehicles);
+          if (data.stations) setStations(data.stations);
+          if (data.entries) setEntries(data.entries);
+        } catch (error) {
+          console.error('Erreur chargement:', error);
+        } finally {
+          setLoading(false);
         }
-      }
-    });
-  
-    stationSelect.addEventListener("change", () => {
-      if (stationSelect.value === "Ajouter une station…") {
-        const newStation = prompt("Nom de la station ?");
-        if (newStation && newStation.trim() !== "") {
-          stations.splice(stations.length - 1, 0, newStation.trim());
-          localStorage.setItem("stations", JSON.stringify(stations));
-          populateSelect(stationSelect, stations);
-          stationSelect.value = newStation.trim();
+      };
+
+      const handleVehicleChange = (e) => {
+        const value = e.target.value;
+        if (value === 'new') {
+          setShowNewVehicle(true);
+          setSelectedVehicle('');
         } else {
-          stationSelect.selectedIndex = 0;
+          setSelectedVehicle(value);
+          setShowNewVehicle(false);
+          localStorage.setItem('lastVehicle', value);
         }
-      }
-    });
-  
-    async function sendData() {
-      const vehicle = vehicleSelect.value;
-      const mileage = document.getElementById("mileage").value;
-      const price = document.getElementById("price").value;
-      const liters = document.getElementById("liters").value;
-      const station = stationSelect.value;
-  
-      if (!vehicle || !mileage || !price || !liters || !station) {
-        statusText.textContent = "⚠️ Merci de remplir tous les champs.";
-        return;
-      }
-  
-      const payload = { vehicle, mileage, price_per_liter: price, liters, station };
-  
-      try {
-        await fetch(apiURL, {
-          method: "POST",
-          mode: "no-cors",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload)
-        });
-        statusText.textContent = "✅ Données envoyées !";
-        document.getElementById("mileage").value = "";
-        document.getElementById("price").value = "";
-        document.getElementById("liters").value = "";
-      } catch (err) {
-        statusText.textContent = "❌ Erreur d’envoi.";
-      }
+      };
+
+      const addNewVehicle = () => {
+        if (newVehicleName.trim()) {
+          setVehicles([...vehicles, newVehicleName.trim()]);
+          setSelectedVehicle(newVehicleName.trim());
+          localStorage.setItem('lastVehicle', newVehicleName.trim());
+          setNewVehicleName('');
+          setShowNewVehicle(false);
+        }
+      };
+
+      const handleStationChange = (e) => {
+        const value = e.target.value;
+        if (value === 'new') {
+          setShowNewStation(true);
+          setSelectedStation('');
+        } else if (value === 'find') {
+          findNearestStation();
+        } else {
+          setSelectedStation(value);
+          setShowNewStation(false);
+        }
+      };
+
+      const addNewStation = () => {
+        if (newStationName.trim()) {
+          setStations([...stations, newStationName.trim()]);
+          setSelectedStation(newStationName.trim());
+          setNewStationName('');
+          setShowNewStation(false);
+        }
+      };
+
+      const findNearestStation = async () => {
+        setFindingStation(true);
+        try {
+          const position = await new Promise((resolve, reject) => {
+            navigator.geolocation.getCurrentPosition(resolve, reject);
+          });
+          
+          const { latitude, longitude } = position.coords;
+          const stationName = `Station (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`;
+          
+          setSelectedStation(stationName);
+          if (!stations.includes(stationName)) {
+            setStations([...stations, stationName]);
+          }
+        } catch (error) {
+          alert('Impossible d\'obtenir votre position.');
+        } finally {
+          setFindingStation(false);
+        }
+      };
+
+      const handleSubmit = async () => {
+        if (!selectedVehicle || !mileage || !pricePerLiter || !liters || !selectedStation) {
+          alert('Veuillez remplir tous les champs');
+          return;
+        }
+
+        setLoading(true);
+        const newEntry = {
+          date: new Date().toISOString(),
+          vehicle: selectedVehicle,
+          mileage: parseFloat(mileage),
+          pricePerLiter: parseFloat(pricePerLiter),
+          liters: parseFloat(liters),
+          totalCost: (parseFloat(pricePerLiter) * parseFloat(liters)).toFixed(2),
+          station: selectedStation
+        };
+
+        try {
+          await fetch(GOOGLE_SCRIPT_URL, {
+            method: 'POST',
+            mode: 'no-cors',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              action: 'addEntry',
+              entry: newEntry
+            })
+          });
+
+          setMileage('');
+          setPricePerLiter('');
+          setLiters('');
+          setSelectedStation('');
+          
+          alert('✅ Entrée enregistrée !');
+          setTimeout(() => loadData(), 1000);
+        } catch (error) {
+          alert('Erreur lors de l\'enregistrement.');
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      return (
+        <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100 p-4">
+          <div className="max-w-md mx-auto">
+            <div className="bg-white rounded-2xl shadow-xl p-6 mb-4">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="bg-indigo-600 p-3 rounded-xl">
+                    <svg className="text-white w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 17a2 2 0 11-4 0 2 2 0 014 0zM19 17a2 2 0 11-4 0 2 2 0 014 0z" />
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16V6a1 1 0 00-1-1H4a1 1 0 00-1 1v10a1 1 0 001 1h1m8-1a1 1 0 01-1 1H9m4-1V8a1 1 0 011-1h2.586a1 1 0 01.707.293l3.414 3.414a1 1 0 01.293.707V16a1 1 0 01-1 1h-1m-6-1a1 1 0 001 1h1M5 17a2 2 0 104 0m-4 0a2 2 0 114 0m6 0a2 2 0 104 0m-4 0a2 2 0 114 0" />
+                    </svg>
+                  </div>
+                  <h1 className="text-2xl font-bold text-gray-800">Suivi Essence</h1>
+                </div>
+                <button onClick={loadData} disabled={loading} className="p-2 rounded-lg bg-gray-100 hover:bg-gray-200">
+                  <svg className={`w-5 h-5 text-gray-600 ${loading ? 'animate-spin' : ''}`} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                  </svg>
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Véhicule</label>
+                  {!showNewVehicle ? (
+                    <select value={selectedVehicle} onChange={handleVehicleChange} className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-indigo-500" disabled={loading}>
+                      <option value="">Sélectionner un véhicule</option>
+                      {vehicles.map((v, i) => <option key={i} value={v}>{v}</option>)}
+                      <option value="new">+ Ajouter un véhicule</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input type="text" value={newVehicleName} onChange={(e) => setNewVehicleName(e.target.value)} placeholder="Nom du véhicule" className="flex-1 px-4 py-3 border rounded-lg" />
+                      <button onClick={addNewVehicle} className="px-4 py-3 bg-indigo-600 text-white rounded-lg">✓</button>
+                      <button onClick={() => setShowNewVehicle(false)} className="px-4 py-3 bg-gray-300 rounded-lg">✕</button>
+                    </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Kilométrage (km)</label>
+                  <input type="number" inputMode="numeric" value={mileage} onChange={(e) => setMileage(e.target.value)} placeholder="Ex: 45000" className="w-full px-4 py-3 border rounded-lg" disabled={loading} />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Prix par litre (€)</label>
+                  <input type="number" inputMode="decimal" step="0.001" value={pricePerLiter} onChange={(e) => setPricePerLiter(e.target.value)} placeholder="Ex: 1.65" className="w-full px-4 py-3 border rounded-lg" disabled={loading} />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Nombre de litres (L)</label>
+                  <input type="number" inputMode="decimal" step="0.01" value={liters} onChange={(e) => setLiters(e.target.value)} placeholder="Ex: 45.5" className="w-full px-4 py-3 border rounded-lg" disabled={loading} />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Station</label>
+                  {!showNewStation ? (
+                    <select value={selectedStation} onChange={handleStationChange} className="w-full px-4 py-3 border rounded-lg" disabled={findingStation || loading}>
+                      <option value="">Sélectionner une station</option>
+                      {stations.map((s, i) => <option key={i} value={s}>{s}</option>)}
+                      <option value="new">+ Ajouter une station</option>
+                      <option value="find">📍 Trouver ma station</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input type="text" value={newStationName} onChange={(e) => setNewStationName(e.target.value)} placeholder="Nom de la station" className="flex-1 px-4 py-3 border rounded-lg" />
+                      <button onClick={addNewStation} className="px-4 py-3 bg-indigo-600 text-white rounded-lg">✓</button>
+                      <button onClick={() => setShowNewStation(false)} className="px-4 py-3 bg-gray-300 rounded-lg">✕</button>
+                    </div>
+                  )}
+                </div>
+
+                {pricePerLiter && liters && (
+                  <div className="bg-indigo-50 p-4 rounded-lg">
+                    <p className="text-sm text-gray-600">Coût total</p>
+                    <p className="text-2xl font-bold text-indigo-600">{(parseFloat(pricePerLiter) * parseFloat(liters)).toFixed(2)} €</p>
+                  </div>
+                )}
+
+                <button onClick={handleSubmit} disabled={loading} className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-lg hover:bg-indigo-700 disabled:opacity-50">
+                  {loading ? 'Enregistrement...' : 'Enregistrer'}
+                </button>
+              </div>
+            </div>
+
+            {entries.length > 0 && (
+              <div className="bg-white rounded-2xl shadow-xl p-6">
+                <h2 className="text-lg font-bold text-gray-800 mb-4">Dernières entrées</h2>
+                <div className="space-y-3">
+                  {entries.slice(-5).reverse().map((entry, idx) => (
+                    <div key={idx} className="border-l-4 border-indigo-500 pl-4 py-2">
+                      <div className="flex justify-between">
+                        <div>
+                          <p className="font-semibold">{entry.vehicle}</p>
+                          <p className="text-sm text-gray-600">{entry.station}</p>
+                          <p className="text-xs text-gray-500">{new Date(entry.date).toLocaleDateString('fr-FR')}</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-bold text-indigo-600">{entry.totalCost} €</p>
+                          <p className="text-xs text-gray-500">{entry.liters}L</p>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      );
     }
+
+    ReactDOM.render(<FuelTracker />, document.getElementById('root'));
   </script>
-
 </body>
 </html>
