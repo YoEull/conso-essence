@@ -1,20 +1,4 @@
-<!DOCTYPE html>
-<html lang="fr">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Suivi Essence</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-</head>
-<body>
-  <div id="root"></div>
-  
-  <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
-  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
-  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-  
-  <script type="text/babel">
-    const { useState, useEffect } = React;
+const { useState, useEffect } = React;
     
     // ⚠️ REMPLACEZ CETTE URL PAR VOTRE URL GOOGLE SCRIPT
     const GOOGLE_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycby5dPFTwmlSzcfYdiGwFsJzxh73saVfMAXT2wjim8D1tLap0tK8IxiYLZr_bjLnqs1S/exec';
@@ -49,11 +33,20 @@
           const response = await fetch(`${GOOGLE_SCRIPT_URL}?action=getData`);
           const data = await response.json();
           
-          if (data.vehicles) setVehicles(data.vehicles);
-          if (data.stations) setStations(data.stations);
-          if (data.fills) setFills(data.fills);
+          console.log('Données reçues:', data);
+          
+          if (data.vehicles && data.vehicles.length > 0) {
+            setVehicles(data.vehicles);
+          }
+          if (data.stations && data.stations.length > 0) {
+            setStations(data.stations);
+          }
+          if (data.fills && data.fills.length > 0) {
+            setFills(data.fills);
+          }
         } catch (error) {
           console.error('Erreur chargement:', error);
+          alert('Erreur de chargement. Vérifiez l\'URL du script.');
         } finally {
           setLoading(false);
         }
@@ -142,20 +135,33 @@
         };
 
         try {
-          await fetch(url, {
+          const url = `${GOOGLE_SCRIPT_URL}?action=addFill&vehicle=${encodeURIComponent(newFill.vehicle)}&mileage=${newFill.mileage}&pricePerLiter=${newFill.pricePerLiter}&liters=${newFill.liters}&totalCost=${newFill.totalCost}&station=${encodeURIComponent(newFill.station)}&date=${encodeURIComponent(newFill.date)}`;
+          
+          console.log('Envoi vers:', url);
+          
+          const response = await fetch(url, {
             method: 'GET',
             redirect: 'follow'
           });
-
-          setMileage('');
-          setPricePerLiter('');
-          setLiters('');
-          setSelectedStation('');
           
-          alert('✅ Entrée enregistrée !');
-          setTimeout(() => loadData(), 2000);
+          const result = await response.json();
+          console.log('Résultat:', result);
+          
+          if (result.success) {
+            setMileage('');
+            setPricePerLiter('');
+            setLiters('');
+            setSelectedStation('');
+            
+            alert('✅ Entrée enregistrée avec succès !');
+            
+            setTimeout(() => loadData(), 2000);
+          } else {
+            alert('❌ Erreur: ' + (result.error || 'Erreur inconnue'));
+          }
         } catch (error) {
-          alert('Erreur lors de l\'enregistrement.');
+          console.error('Erreur complète:', error);
+          alert('❌ Erreur: ' + error.message);
         } finally {
           setLoading(false);
         }
@@ -274,6 +280,3 @@
     }
 
     ReactDOM.render(<FuelTracker />, document.getElementById('root'));
-  </script>
-</body>
-</html>
