@@ -8,11 +8,14 @@ import {
   getVehicles,
   getStations,
   getFills,
+  getUsageStats,
+  rankByUsage,
   upsertVehicle,
   upsertStation,
   addFill,
 } from "@/lib/data";
 import { ChipPicker } from "@/components/ChipPicker";
+import { AppHeader } from "@/components/AppHeader";
 
 export default function Home() {
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -30,9 +33,14 @@ export default function Home() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [v, s, f] = await Promise.all([getVehicles(), getStations(), getFills()]);
-      setVehicles(v);
-      setStations(s);
+      const [v, s, f, usage] = await Promise.all([
+        getVehicles(),
+        getStations(),
+        getFills(),
+        getUsageStats(),
+      ]);
+      setVehicles(rankByUsage(v, usage.map((u) => ({ id: u.vehicle_id }))));
+      setStations(rankByUsage(s, usage.map((u) => ({ id: u.station_id }))));
       setFills(f);
     } catch (e) {
       alert("Erreur de chargement : " + (e as Error).message);
@@ -54,7 +62,7 @@ export default function Home() {
 
   const addVehicle = async (name: string) => {
     const vehicle = await upsertVehicle(name);
-    setVehicles((prev) => (prev.some((v) => v.id === vehicle.id) ? prev : [...prev, vehicle]));
+    setVehicles((prev) => (prev.some((v) => v.id === vehicle.id) ? prev : [vehicle, ...prev]));
     selectVehicle(vehicle.id);
   };
 
@@ -62,7 +70,7 @@ export default function Home() {
 
   const addStation = async (name: string) => {
     const station = await upsertStation(name);
-    setStations((prev) => (prev.some((s) => s.id === station.id) ? prev : [...prev, station]));
+    setStations((prev) => (prev.some((s) => s.id === station.id) ? prev : [station, ...prev]));
     selectStation(station.id);
   };
 
@@ -116,12 +124,14 @@ export default function Home() {
 
   return (
     <div className="min-h-dvh bg-gray-50 flex flex-col">
-      <header className="sticky top-0 z-10 bg-white border-b border-gray-100 px-4 py-4 flex items-center justify-between">
-        <h1 className="text-lg font-bold text-gray-900">Suivi Essence</h1>
-        <button onClick={loadData} disabled={loading} className="p-2 rounded-lg text-gray-500 active:bg-gray-100">
-          <span className={loading ? "inline-block animate-spin" : ""}>↻</span>
-        </button>
-      </header>
+      <AppHeader
+        title="Suivi Essence"
+        rightAction={
+          <button onClick={loadData} disabled={loading} className="p-2 rounded-lg text-gray-500 active:bg-gray-100">
+            <span className={loading ? "inline-block animate-spin" : ""}>↻</span>
+          </button>
+        }
+      />
 
       <main className="flex-1 overflow-y-auto px-4 py-5 space-y-6 pb-40">
         <ChipPicker
@@ -131,19 +141,6 @@ export default function Home() {
           onSelect={selectVehicle}
           onAddNew={addVehicle}
         />
-
-        <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Kilométrage (km)</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={mileage}
-            onChange={(e) => setMileage(e.target.value)}
-            placeholder="Ex: 45000"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
-            disabled={loading}
-          />
-        </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
@@ -183,6 +180,19 @@ export default function Home() {
           extraAction={{ label: "📍 Ma position", onClick: findNearestStation, loading: findingStation }}
         />
 
+        <div>
+          <label className="block text-sm font-medium text-gray-500 mb-2">Kilométrage (km)</label>
+          <input
+            type="number"
+            inputMode="numeric"
+            value={mileage}
+            onChange={(e) => setMileage(e.target.value)}
+            placeholder="Ex: 45000"
+            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
+            disabled={loading}
+          />
+        </div>
+
         {fills.length > 0 && (
           <section>
             <h2 className="text-sm font-semibold text-gray-500 mb-3">Dernières entrées</h2>
@@ -192,7 +202,9 @@ export default function Home() {
                   <div>
                     <p className="font-semibold text-gray-900">{fill.vehicles?.name}</p>
                     <p className="text-sm text-gray-500">{fill.stations?.name}</p>
-                    <p className="text-xs text-gray-400">{new Date(fill.date).toLocaleDateString("fr-FR")}</p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(fill.date).toLocaleDateString("fr-FR")} · {fill.mileage.toLocaleString("fr-FR")} km
+                    </p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-indigo-600">{fill.total_cost} €</p>

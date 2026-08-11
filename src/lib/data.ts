@@ -35,6 +35,54 @@ export async function getFills(): Promise<Fill[]> {
   return data as unknown as Fill[];
 }
 
+export type FullFill = Fill & { vehicle_id: number; station_id: number };
+
+export async function getAllFills(): Promise<FullFill[]> {
+  const { data, error } = await supabase
+    .from("fills")
+    .select(
+      "id, date, mileage, price_per_liter, liters, total_cost, vehicle_id, station_id, vehicles(name), stations(name)"
+    )
+    .order("date", { ascending: false })
+    .limit(2000);
+  if (error) throw error;
+  return data as unknown as FullFill[];
+}
+
+export type UsageEntry = { vehicle_id: number; station_id: number };
+
+export async function getUsageStats(): Promise<UsageEntry[]> {
+  const { data, error } = await supabase
+    .from("fills")
+    .select("vehicle_id, station_id")
+    .order("date", { ascending: false })
+    .limit(1000);
+  if (error) throw error;
+  return data;
+}
+
+// Most-used first, ties broken by most-recent use, then alphabetically.
+// `usage` must already be sorted most-recent-first (as getUsageStats returns it).
+export function rankByUsage<T extends { id: number; name: string }>(
+  items: T[],
+  usage: { id: number }[]
+): T[] {
+  const frequency = new Map<number, number>();
+  const mostRecentIndex = new Map<number, number>();
+  usage.forEach((u, index) => {
+    frequency.set(u.id, (frequency.get(u.id) ?? 0) + 1);
+    if (!mostRecentIndex.has(u.id)) mostRecentIndex.set(u.id, index);
+  });
+
+  return [...items].sort((a, b) => {
+    const freqDiff = (frequency.get(b.id) ?? 0) - (frequency.get(a.id) ?? 0);
+    if (freqDiff !== 0) return freqDiff;
+    const recencyDiff = (mostRecentIndex.get(a.id) ?? Infinity) - (mostRecentIndex.get(b.id) ?? Infinity);
+    if (recencyDiff !== 0) return recencyDiff;
+    return a.name.localeCompare(b.name);
+  });
+}
+
 export async function upsertVehicle(name: string): Promise<Vehicle> {
   const { data, error } = await supabase
     .from("vehicles")
