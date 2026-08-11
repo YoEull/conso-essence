@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 const NAV_LINKS = [
   { href: "/", label: "Nouveau plein" },
   { href: "/historique", label: "Historique" },
-  { href: "/extract", label: "Extraire" },
+  { href: "/parametres", label: "⚙️ Paramètres" },
 ];
 
 export function AppHeader({ title, rightAction }: { title: string; rightAction?: ReactNode }) {

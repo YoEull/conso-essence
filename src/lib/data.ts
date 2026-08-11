@@ -114,3 +114,29 @@ export async function addFill(fill: {
   const { error } = await supabase.from("fills").insert(fill);
   if (error) throw error;
 }
+
+export async function updateFill(
+  id: number,
+  fill: {
+    vehicle_id: number;
+    station_id: number;
+    mileage: number;
+    price_per_liter: number;
+    liters: number;
+    total_cost: number;
+    date: string;
+  }
+): Promise<void> {
+  const { error } = await supabase.from("fills").update(fill).eq("id", id);
+  if (error) throw error;
+}
+
+export async function renameVehicle(id: number, name: string): Promise<void> {
+  const { error } = await supabase.from("vehicles").update({ name }).eq("id", id);
+  if (error) throw error;
+}
+
+export async function renameStation(id: number, name: string): Promise<void> {
+  const { error } = await supabase.from("stations").update({ name }).eq("id", id);
+  if (error) throw error;
+}

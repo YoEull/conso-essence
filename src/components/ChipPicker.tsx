@@ -16,7 +16,7 @@ export function ChipPicker({
   items: Item[];
   selectedId: number | "";
   onSelect: (id: number) => void;
-  onAddNew: (name: string) => Promise<void>;
+  onAddNew?: (name: string) => Promise<void>;
   extraAction?: { icon: ReactNode; onClick: () => void; loading?: boolean };
 }) {
   const [adding, setAdding] = useState(false);
@@ -24,6 +24,7 @@ export function ChipPicker({
   const [saving, setSaving] = useState(false);
 
   const confirmAdd = async () => {
+    if (!onAddNew) return;
     const trimmed = name.trim();
     if (!trimmed) return;
     setSaving(true);
@@ -40,17 +41,7 @@ export function ChipPicker({
     <div>
       <div className="flex items-center justify-between mb-2">
         <label className="text-sm font-medium text-gray-500">{label}</label>
-        <div className="flex gap-2">
-          {extraAction && (
-            <button
-              type="button"
-              onClick={extraAction.onClick}
-              disabled={extraAction.loading}
-              className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 active:bg-gray-100 disabled:opacity-50"
-            >
-              {extraAction.loading ? "…" : extraAction.icon}
-            </button>
-          )}
+        {onAddNew && (
           <button
             type="button"
             onClick={() => setAdding((v) => !v)}
@@ -58,7 +49,7 @@ export function ChipPicker({
           >
             +
           </button>
-        </div>
+        )}
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
@@ -78,7 +69,7 @@ export function ChipPicker({
         ))}
       </div>
 
-      {adding && (
+      {adding && onAddNew && (
         <div className="flex gap-2 mt-2">
           <input
             autoFocus
@@ -106,6 +97,16 @@ export function ChipPicker({
           >
             ✕
           </button>
+          {extraAction && (
+            <button
+              type="button"
+              onClick={extraAction.onClick}
+              disabled={extraAction.loading}
+              className="px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-600 active:bg-gray-100 disabled:opacity-50"
+            >
+              {extraAction.loading ? "…" : extraAction.icon}
+            </button>
+          )}
         </div>
       )}
     </div>

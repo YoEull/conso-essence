@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
+import { EditFillModal } from "@/components/EditFillModal";
 import { getAllFills, getVehicles, getStations, FullFill, Vehicle, Station } from "@/lib/data";
 
 function chipClass(active: boolean) {
@@ -19,21 +20,24 @@ export default function HistoriquePage() {
   const [stationFilter, setStationFilter] = useState<number | "all">("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [editingFill, setEditingFill] = useState<FullFill | null>(null);
+
+  const load = async () => {
+    setLoading(true);
+    try {
+      const [f, v, s] = await Promise.all([getAllFills(), getVehicles(), getStations()]);
+      setFills(f);
+      setVehicles(v);
+      setStations(s);
+    } catch (e) {
+      alert("Erreur de chargement : " + (e as Error).message);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    (async () => {
-      setLoading(true);
-      try {
-        const [f, v, s] = await Promise.all([getAllFills(), getVehicles(), getStations()]);
-        setFills(f);
-        setVehicles(v);
-        setStations(s);
-      } catch (e) {
-        alert("Erreur de chargement : " + (e as Error).message);
-      } finally {
-        setLoading(false);
-      }
-    })();
+    load();
   }, []);
 
   const filtered = useMemo(() => {
@@ -107,23 +111,47 @@ export default function HistoriquePage() {
         ) : (
           <div className="space-y-2">
             {filtered.map((fill) => (
-              <div key={fill.id} className="bg-white border border-gray-100 rounded-xl p-3 flex justify-between">
-                <div>
-                  <p className="font-semibold text-gray-900">{fill.vehicles?.name}</p>
-                  <p className="text-sm text-gray-500">{fill.stations?.name}</p>
-                  <p className="text-xs text-gray-400">
-                    {new Date(fill.date).toLocaleDateString("fr-FR")} · {fill.mileage.toLocaleString("fr-FR")} km
-                  </p>
+              <div key={fill.id} className="bg-white border border-gray-100 rounded-xl p-3">
+                <div className="flex justify-between">
+                  <div>
+                    <p className="font-semibold text-gray-900">{fill.vehicles?.name}</p>
+                    <p className="text-sm text-gray-500">{fill.stations?.name}</p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(fill.date).toLocaleDateString("fr-FR")} · {fill.mileage.toLocaleString("fr-FR")} km
+                    </p>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-indigo-600">{fill.total_cost} €</p>
+                    <p className="text-xs text-gray-400">{fill.liters} L</p>
+                  </div>
                 </div>
-                <div className="text-right">
-                  <p className="font-bold text-indigo-600">{fill.total_cost} €</p>
-                  <p className="text-xs text-gray-400">{fill.liters} L</p>
+                <div className="flex justify-end mt-2 pt-2 border-t border-gray-50">
+                  <button
+                    onClick={() => setEditingFill(fill)}
+                    aria-label="Modifier ce plein"
+                    className="p-2 text-gray-300 active:bg-gray-100 rounded-lg"
+                  >
+                    ✎
+                  </button>
                 </div>
               </div>
             ))}
           </div>
         )}
       </main>
+
+      {editingFill && (
+        <EditFillModal
+          fill={editingFill}
+          vehicles={vehicles}
+          stations={stations}
+          onClose={() => setEditingFill(null)}
+          onSaved={() => {
+            setEditingFill(null);
+            load();
+          }}
+        />
+      )}
     </div>
   );
 }
