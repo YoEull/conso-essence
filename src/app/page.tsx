@@ -142,6 +142,15 @@ export default function Home() {
           onAddNew={addVehicle}
         />
 
+        <ChipPicker
+          label="Station"
+          items={stations}
+          selectedId={selectedStationId}
+          onSelect={selectStation}
+          onAddNew={addStation}
+          extraAction={{ icon: "📍", onClick: findNearestStation, loading: findingStation }}
+        />
+
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm font-medium text-gray-500 mb-2">Prix / L (€)</label>
@@ -151,7 +160,7 @@ export default function Home() {
               step="0.001"
               value={pricePerLiter}
               onChange={(e) => setPricePerLiter(e.target.value)}
-              placeholder="1.65"
+              placeholder="Ex: 1.65"
               className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
               disabled={loading}
             />
@@ -164,21 +173,12 @@ export default function Home() {
               step="0.01"
               value={liters}
               onChange={(e) => setLiters(e.target.value)}
-              placeholder="45.5"
+              placeholder="Ex: 45.5"
               className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
               disabled={loading}
             />
           </div>
         </div>
-
-        <ChipPicker
-          label="Station"
-          items={stations}
-          selectedId={selectedStationId}
-          onSelect={selectStation}
-          onAddNew={addStation}
-          extraAction={{ label: "📍 Ma position", onClick: findNearestStation, loading: findingStation }}
-        />
 
         <div>
           <label className="block text-sm font-medium text-gray-500 mb-2">Kilométrage (km)</label>
