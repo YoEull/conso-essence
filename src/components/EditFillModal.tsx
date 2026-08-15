@@ -25,6 +25,10 @@ export function EditFillModal({
   const [date, setDate] = useState(fill.date.slice(0, 10));
   const [saving, setSaving] = useState(false);
 
+  const inputClass =
+    "w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100";
+  const labelClass = "block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2";
+
   const save = async () => {
     if (!vehicleId || !stationId || !mileage || !pricePerLiter || !liters || !date) {
       alert("Veuillez remplir tous les champs");
@@ -52,10 +56,13 @@ export function EditFillModal({
   return (
     <div className="fixed inset-0 z-40 flex items-end">
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
-      <div className="relative bg-white w-full rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-h-[85vh] overflow-y-auto space-y-4">
+      <div className="relative bg-white dark:bg-gray-900 w-full rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-h-[85vh] overflow-y-auto space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Modifier le plein</h2>
-          <button onClick={onClose} className="p-2 text-gray-500 active:bg-gray-100 rounded-lg">
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Modifier le plein</h2>
+          <button
+            onClick={onClose}
+            className="p-2 text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 rounded-lg"
+          >
             ✕
           </button>
         </div>
@@ -64,48 +71,43 @@ export function EditFillModal({
         <ChipPicker label="Station" items={stations} selectedId={stationId} onSelect={setStationId} />
 
         <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Date</label>
-          <input
-            type="date"
-            value={date}
-            onChange={(e) => setDate(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-base"
-          />
+          <label className={labelClass}>Date</label>
+          <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Prix / L (€)</label>
+            <label className={labelClass}>Prix / L (€)</label>
             <input
               type="number"
               inputMode="decimal"
               step="0.001"
               value={pricePerLiter}
               onChange={(e) => setPricePerLiter(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
+              className={inputClass}
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Litres</label>
+            <label className={labelClass}>Litres</label>
             <input
               type="number"
               inputMode="decimal"
               step="0.01"
               value={liters}
               onChange={(e) => setLiters(e.target.value)}
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
+              className={inputClass}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Kilométrage (km)</label>
+          <label className={labelClass}>Kilométrage (km)</label>
           <input
             type="number"
             inputMode="numeric"
             value={mileage}
             onChange={(e) => setMileage(e.target.value)}
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
+            className={inputClass}
           />
         </div>
 

@@ -148,81 +148,96 @@ export default function Home() {
     if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
   };
 
+  const blockClass = "bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800";
+  const inputClass =
+    "w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500";
+  const labelClass = "block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2";
+
   return (
-    <div className="min-h-dvh bg-gray-50 flex flex-col">
+    <div className="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col">
       <AppHeader
         title="Suivi Essence"
         rightAction={
-          <button onClick={loadData} disabled={loading} className="p-2 rounded-lg text-gray-500 active:bg-gray-100">
+          <button
+            onClick={loadData}
+            disabled={loading}
+            className="p-2 rounded-lg text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800"
+          >
             <span className={loading ? "inline-block animate-spin" : ""}>↻</span>
           </button>
         }
       />
 
-      <main className="flex-1 overflow-y-auto px-4 py-5 space-y-6 pb-40">
-        <ChipPicker
-          label="Véhicule"
-          items={vehicles}
-          selectedId={selectedVehicleId}
-          onSelect={selectVehicle}
-          onAddNew={addVehicle}
-        />
-
-        <ChipPicker
-          label="Station"
-          items={stations}
-          selectedId={selectedStationId}
-          onSelect={selectStation}
-          onAddNew={addStation}
-          extraAction={{ icon: "📍", onClick: findNearestStation, loading: findingStation }}
-          rows={2}
-        />
-
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Prix / L (€)</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              step="0.001"
-              value={pricePerLiter}
-              onChange={(e) => setPricePerLiter(e.target.value)}
-              placeholder="Ex: 1.65"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
-              disabled={loading}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Litres</label>
-            <input
-              type="number"
-              inputMode="decimal"
-              step="0.01"
-              value={liters}
-              onChange={(e) => setLiters(e.target.value)}
-              placeholder="Ex: 45.5"
-              className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
-              disabled={loading}
-            />
-          </div>
-        </div>
-
-        <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Kilométrage (km)</label>
-          <input
-            type="number"
-            inputMode="numeric"
-            value={mileage}
-            onChange={(e) => setMileage(e.target.value)}
-            placeholder="Ex: 45000"
-            className="w-full px-4 py-3 border border-gray-200 rounded-xl text-lg"
-            disabled={loading}
+      <main className="flex-1 overflow-y-auto px-4 py-5 space-y-4 pb-40">
+        <div className={blockClass}>
+          <ChipPicker
+            label="Véhicule"
+            items={vehicles}
+            selectedId={selectedVehicleId}
+            onSelect={selectVehicle}
+            onAddNew={addVehicle}
           />
         </div>
 
+        <div className={blockClass}>
+          <ChipPicker
+            label="Station"
+            items={stations}
+            selectedId={selectedStationId}
+            onSelect={selectStation}
+            onAddNew={addStation}
+            extraAction={{ icon: "📍", onClick: findNearestStation, loading: findingStation }}
+            rows={2}
+          />
+        </div>
+
+        <div className={`${blockClass} space-y-4`}>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Prix / L (€)</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.001"
+                value={pricePerLiter}
+                onChange={(e) => setPricePerLiter(e.target.value)}
+                placeholder="Ex: 1.65"
+                className={inputClass}
+                disabled={loading}
+              />
+            </div>
+            <div>
+              <label className={labelClass}>Litres</label>
+              <input
+                type="number"
+                inputMode="decimal"
+                step="0.01"
+                value={liters}
+                onChange={(e) => setLiters(e.target.value)}
+                placeholder="Ex: 45.5"
+                className={inputClass}
+                disabled={loading}
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className={labelClass}>Kilométrage (km)</label>
+            <input
+              type="number"
+              inputMode="numeric"
+              value={mileage}
+              onChange={(e) => setMileage(e.target.value)}
+              placeholder="Ex: 45000"
+              className={inputClass}
+              disabled={loading}
+            />
+          </div>
+        </div>
+
         {fills.length > 0 && (
-          <section>
-            <h2 className="text-sm font-semibold text-gray-500 mb-3">Dernières entrées</h2>
+          <div className={blockClass}>
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Dernières entrées</h2>
             <div className="space-y-2">
               {fills.map((fill) => (
                 <div
@@ -230,30 +245,30 @@ export default function Home() {
                   onTouchStart={() => handlePressStart(fill)}
                   onTouchMove={handlePressMove}
                   onTouchEnd={handlePressEnd}
-                  className="bg-white border border-gray-100 rounded-xl p-3 flex justify-between select-none"
+                  className="bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3 flex justify-between select-none"
                 >
                   <div>
-                    <p className="font-semibold text-gray-900">{fill.vehicles?.name}</p>
-                    <p className="text-sm text-gray-500">{fill.stations?.name}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="font-semibold text-gray-900 dark:text-gray-50">{fill.vehicles?.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{fill.stations?.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       {new Date(fill.date).toLocaleDateString("fr-FR")} · {fill.mileage.toLocaleString("fr-FR")} km
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-indigo-600">{fill.total_cost} €</p>
-                    <p className="text-xs text-gray-400">{fill.liters} L</p>
+                    <p className="font-bold text-indigo-600 dark:text-indigo-400">{fill.total_cost} €</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">{fill.liters} L</p>
                   </div>
                 </div>
               ))}
             </div>
-          </section>
+          </div>
         )}
       </main>
 
-      <footer className="sticky bottom-0 bg-white border-t border-gray-100 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <footer className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {totalCost && (
-          <p className="text-center text-sm text-gray-500 mb-2">
-            Total : <span className="font-bold text-indigo-600">{totalCost} €</span>
+          <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Total : <span className="font-bold text-indigo-600 dark:text-indigo-400">{totalCost} €</span>
           </p>
         )}
         <button
@@ -269,12 +284,12 @@ export default function Home() {
         <div className="fixed inset-0 z-40 flex items-end" onClick={() => setLongPressFill(null)}>
           <div className="absolute inset-0 bg-black/30" />
           <div
-            className="relative bg-white w-full rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3"
+            className="relative bg-white dark:bg-gray-900 w-full rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3"
             onClick={(e) => e.stopPropagation()}
           >
             {isEditableNow(longPressFill) ? (
               <>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   {longPressFill.vehicles?.name} · {longPressFill.stations?.name} ·{" "}
                   {new Date(longPressFill.date).toLocaleDateString("fr-FR")}
                 </p>
@@ -286,14 +301,14 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => setLongPressFill(null)}
-                  className="w-full py-3 bg-gray-100 text-gray-600 font-semibold rounded-xl"
+                  className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold rounded-xl"
                 >
                   Annuler
                 </button>
               </>
             ) : (
               <>
-                <p className="text-sm text-gray-600">
+                <p className="text-sm text-gray-600 dark:text-gray-300">
                   La modification rapide n&apos;est possible que dans les 8h suivant la saisie. Rendez-vous dans
                   Historique pour modifier cette entrée.
                 </p>
@@ -305,7 +320,7 @@ export default function Home() {
                 </button>
                 <button
                   onClick={() => setLongPressFill(null)}
-                  className="w-full py-3 bg-gray-100 text-gray-600 font-semibold rounded-xl"
+                  className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold rounded-xl"
                 >
                   Fermer
                 </button>

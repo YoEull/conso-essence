@@ -42,12 +42,12 @@ export function ChipPicker({
   return (
     <div>
       <div className="flex items-center justify-between mb-2">
-        <label className="text-sm font-medium text-gray-500">{label}</label>
+        <label className="text-sm font-medium text-gray-500 dark:text-gray-400">{label}</label>
         {onAddNew && (
           <button
             type="button"
             onClick={() => setAdding((v) => !v)}
-            className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 bg-white text-gray-600 active:bg-gray-100"
+            className="w-8 h-8 flex items-center justify-center rounded-full border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 active:bg-gray-100 dark:active:bg-gray-700"
           >
             +
           </button>
@@ -69,7 +69,7 @@ export function ChipPicker({
             className={`shrink-0 whitespace-nowrap px-4 py-2.5 rounded-full text-sm font-medium border transition-colors ${
               selectedId === item.id
                 ? "bg-indigo-600 border-indigo-600 text-white"
-                : "bg-white border-gray-200 text-gray-700 active:bg-gray-100"
+                : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 active:bg-gray-100 dark:active:bg-gray-700"
             }`}
           >
             {item.name}
@@ -85,7 +85,7 @@ export function ChipPicker({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Nom"
-            className="flex-1 px-4 py-2.5 border border-gray-200 rounded-lg text-base"
+            className="flex-1 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
           <button
             type="button"
@@ -101,7 +101,7 @@ export function ChipPicker({
               setAdding(false);
               setName("");
             }}
-            className="px-4 py-2.5 bg-gray-100 text-gray-600 rounded-lg"
+            className="px-4 py-2.5 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-lg"
           >
             ✕
           </button>
@@ -110,7 +110,7 @@ export function ChipPicker({
               type="button"
               onClick={extraAction.onClick}
               disabled={extraAction.loading}
-              className="px-4 py-2.5 rounded-lg border border-gray-200 bg-white text-gray-600 active:bg-gray-100 disabled:opacity-50"
+              className="px-4 py-2.5 rounded-lg border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 active:bg-gray-100 dark:active:bg-gray-700 disabled:opacity-50"
             >
               {extraAction.loading ? "…" : extraAction.icon}
             </button>

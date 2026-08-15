@@ -37,14 +37,17 @@ export function EditableNameList({
   return (
     <div className="space-y-2">
       {items.map((item) => (
-        <div key={item.id} className="flex items-center gap-2 bg-white border border-gray-100 rounded-xl p-3">
+        <div
+          key={item.id}
+          className="flex items-center gap-2 bg-gray-50 dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-xl p-3"
+        >
           {editingId === item.id ? (
             <>
               <input
                 autoFocus
                 value={draft}
                 onChange={(e) => setDraft(e.target.value)}
-                className="flex-1 px-3 py-2 border border-gray-200 rounded-lg text-sm"
+                className="flex-1 px-3 py-2 border border-gray-200 dark:border-gray-700 rounded-lg text-sm bg-white dark:bg-gray-900 text-gray-900 dark:text-gray-100"
               />
               <button
                 onClick={() => save(item.id)}
@@ -55,18 +58,18 @@ export function EditableNameList({
               </button>
               <button
                 onClick={() => setEditingId(null)}
-                className="px-3 py-2 bg-gray-100 text-gray-600 rounded-lg text-sm"
+                className="px-3 py-2 bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300 rounded-lg text-sm"
               >
                 ✕
               </button>
             </>
           ) : (
             <>
-              <span className="flex-1 text-sm text-gray-900">{item.name}</span>
+              <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">{item.name}</span>
               <button
                 onClick={() => startEdit(item)}
                 aria-label={`Modifier ${item.name}`}
-                className="p-2 text-gray-400 active:bg-gray-100 rounded-lg"
+                className="p-2 text-gray-400 dark:text-gray-500 active:bg-gray-100 dark:active:bg-gray-700 rounded-lg"
               >
                 ✎
               </button>

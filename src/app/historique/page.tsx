@@ -8,7 +8,9 @@ import { getAllFills, getVehicles, getStations, FullFill, Vehicle, Station } fro
 
 function chipClass(active: boolean) {
   return `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border ${
-    active ? "bg-indigo-600 border-indigo-600 text-white" : "bg-white border-gray-200 text-gray-700"
+    active
+      ? "bg-indigo-600 border-indigo-600 text-white"
+      : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200"
   }`;
 }
 
@@ -87,12 +89,12 @@ function HistoriqueContent() {
   }, [fills, vehicleFilter, stationFilter, fromDate, toDate]);
 
   return (
-    <div className="min-h-dvh bg-gray-50 flex flex-col">
+    <div className="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col">
       <AppHeader title="Historique" />
 
       <main className="flex-1 overflow-y-auto px-4 py-5 space-y-4 pb-10">
         <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Véhicule</label>
+          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Véhicule</label>
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
             <button onClick={() => setVehicleFilter("all")} className={chipClass(vehicleFilter === "all")}>
               Tous
@@ -110,7 +112,7 @@ function HistoriqueContent() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Station</label>
+          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Station</label>
           <div className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-1 -mx-4 px-4">
             <button onClick={() => setStationFilter("all")} className={chipClass(stationFilter === "all")}>
               Toutes
@@ -128,7 +130,7 @@ function HistoriqueContent() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-500 mb-2">Période</label>
+          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Période</label>
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 mb-3">
             {DATE_PRESETS.map((preset) => (
               <button
@@ -142,7 +144,7 @@ function HistoriqueContent() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Du</label>
+              <label className="block text-xs font-medium text-gray-400 dark:text-gray-500 mb-1">Du</label>
               <input
                 type="date"
                 value={fromDate}
@@ -150,11 +152,11 @@ function HistoriqueContent() {
                   setFromDate(e.target.value);
                   setActivePreset(null);
                 }}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 mb-1">Au</label>
+              <label className="block text-xs font-medium text-gray-400 dark:text-gray-500 mb-1">Au</label>
               <input
                 type="date"
                 value={toDate}
@@ -162,37 +164,40 @@ function HistoriqueContent() {
                   setToDate(e.target.value);
                   setActivePreset(null);
                 }}
-                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
+                className="w-full px-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               />
             </div>
           </div>
         </div>
 
-        <p className="text-xs text-gray-400">{filtered.length} entrée(s)</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">{filtered.length} entrée(s)</p>
 
         {loading ? (
-          <p className="text-sm text-gray-400">Chargement...</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">Chargement...</p>
         ) : (
           <div className="space-y-2">
             {filtered.map((fill) => (
-              <div key={fill.id} className="bg-white border border-gray-100 rounded-xl p-3">
+              <div
+                key={fill.id}
+                className="bg-white dark:bg-gray-900 border border-gray-100 dark:border-gray-800 rounded-xl p-3"
+              >
                 <div className="flex justify-between items-start">
                   <div>
-                    <p className="font-semibold text-gray-900">{fill.vehicles?.name}</p>
-                    <p className="text-sm text-gray-500">{fill.stations?.name}</p>
-                    <p className="text-xs text-gray-400">
+                    <p className="font-semibold text-gray-900 dark:text-gray-50">{fill.vehicles?.name}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">{fill.stations?.name}</p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
                       {new Date(fill.date).toLocaleDateString("fr-FR")} · {fill.mileage.toLocaleString("fr-FR")} km
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="text-right">
-                      <p className="font-bold text-indigo-600">{fill.total_cost} €</p>
-                      <p className="text-xs text-gray-400">{fill.liters} L</p>
+                      <p className="font-bold text-indigo-600 dark:text-indigo-400">{fill.total_cost} €</p>
+                      <p className="text-xs text-gray-400 dark:text-gray-500">{fill.liters} L</p>
                     </div>
                     <button
                       onClick={() => setEditingFill(fill)}
                       aria-label="Modifier ce plein"
-                      className="p-2 -mr-2 text-gray-300 active:bg-gray-100 rounded-lg"
+                      className="p-2 -mr-2 text-gray-300 dark:text-gray-600 active:bg-gray-100 dark:active:bg-gray-800 rounded-lg"
                     >
                       ✎
                     </button>

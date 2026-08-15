@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { EditableNameList } from "@/components/EditableNameList";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import {
   getVehicles,
   getStations,
@@ -70,14 +71,21 @@ export default function ParametresPage() {
     }
   };
 
+  const blockClass = "bg-white dark:bg-gray-900 rounded-2xl p-4 border border-gray-100 dark:border-gray-800";
+
   return (
-    <div className="min-h-dvh bg-gray-50 flex flex-col">
+    <div className="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col">
       <AppHeader title="⚙️ Paramètres" />
 
-      <main className="flex-1 overflow-y-auto px-4 py-5 space-y-8 pb-10">
-        <section>
-          <h2 className="text-sm font-semibold text-gray-500 mb-3">Export</h2>
-          <p className="text-sm text-gray-500 mb-3">
+      <main className="flex-1 overflow-y-auto px-4 py-5 space-y-6 pb-10">
+        <section className={blockClass}>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Apparence</h2>
+          <ThemeToggle />
+        </section>
+
+        <section className={blockClass}>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Export</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
             Génère un fichier Excel (.xlsx) avec l&apos;ensemble de vos pleins, véhicules et stations.
           </p>
           <button
@@ -89,10 +97,10 @@ export default function ParametresPage() {
           </button>
         </section>
 
-        <section>
-          <h2 className="text-sm font-semibold text-gray-500 mb-3">Véhicules</h2>
+        <section className={blockClass}>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Véhicules</h2>
           {loading ? (
-            <p className="text-sm text-gray-400">Chargement...</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Chargement...</p>
           ) : (
             <EditableNameList
               items={vehicles}
@@ -104,10 +112,10 @@ export default function ParametresPage() {
           )}
         </section>
 
-        <section>
-          <h2 className="text-sm font-semibold text-gray-500 mb-3">Stations</h2>
+        <section className={blockClass}>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Stations</h2>
           {loading ? (
-            <p className="text-sm text-gray-400">Chargement...</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">Chargement...</p>
           ) : (
             <EditableNameList
               items={stations}
