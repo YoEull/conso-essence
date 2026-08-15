@@ -11,13 +11,15 @@ export function ChipPicker({
   onSelect,
   onAddNew,
   extraAction,
+  rows = 1,
 }: {
   label: string;
   items: Item[];
   selectedId: number | "";
-  onSelect: (id: number) => void;
+  onSelect: (id: number | "") => void;
   onAddNew?: (name: string) => Promise<void>;
   extraAction?: { icon: ReactNode; onClick: () => void; loading?: boolean };
+  rows?: 1 | 2;
 }) {
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
@@ -52,12 +54,18 @@ export function ChipPicker({
         )}
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
+      <div
+        className={
+          rows === 2
+            ? "grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-1 -mx-4 px-4"
+            : "flex gap-2 overflow-x-auto pb-1 -mx-4 px-4"
+        }
+      >
         {items.map((item) => (
           <button
             key={item.id}
             type="button"
-            onClick={() => onSelect(item.id)}
+            onClick={() => onSelect(selectedId === item.id ? "" : item.id)}
             className={`shrink-0 whitespace-nowrap px-4 py-2.5 rounded-full text-sm font-medium border transition-colors ${
               selectedId === item.id
                 ? "bg-indigo-600 border-indigo-600 text-white"

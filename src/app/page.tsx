@@ -55,9 +55,9 @@ export default function Home() {
     if (lastVehicleId) setSelectedVehicleId(Number(lastVehicleId));
   }, []);
 
-  const selectVehicle = (id: number) => {
+  const selectVehicle = (id: number | "") => {
     setSelectedVehicleId(id);
-    localStorage.setItem("lastVehicleId", String(id));
+    if (id) localStorage.setItem("lastVehicleId", String(id));
   };
 
   const addVehicle = async (name: string) => {
@@ -66,7 +66,7 @@ export default function Home() {
     selectVehicle(vehicle.id);
   };
 
-  const selectStation = (id: number) => setSelectedStationId(id);
+  const selectStation = (id: number | "") => setSelectedStationId(id);
 
   const addStation = async (name: string) => {
     const station = await upsertStation(name);
@@ -149,6 +149,7 @@ export default function Home() {
           onSelect={selectStation}
           onAddNew={addStation}
           extraAction={{ icon: "📍", onClick: findNearestStation, loading: findingStation }}
+          rows={2}
         />
 
         <div className="grid grid-cols-2 gap-3">

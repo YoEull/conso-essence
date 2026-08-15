@@ -11,6 +11,14 @@ function chipClass(active: boolean) {
   }`;
 }
 
+const DATE_PRESETS: { key: string; label: string; days: number }[] = [
+  { key: "1j", label: "1j", days: 1 },
+  { key: "1w", label: "1w", days: 7 },
+  { key: "1m", label: "1m", days: 30 },
+  { key: "6m", label: "6m", days: 182 },
+  { key: "1y", label: "1y", days: 365 },
+];
+
 export default function HistoriquePage() {
   const [fills, setFills] = useState<FullFill[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
@@ -20,6 +28,7 @@ export default function HistoriquePage() {
   const [stationFilter, setStationFilter] = useState<number | "all">("all");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
+  const [activePreset, setActivePreset] = useState<string | null>(null);
   const [editingFill, setEditingFill] = useState<FullFill | null>(null);
 
   const load = async () => {
@@ -39,6 +48,20 @@ export default function HistoriquePage() {
   useEffect(() => {
     load();
   }, []);
+
+  const applyPreset = (key: string, days: number) => {
+    if (activePreset === key) {
+      setActivePreset(null);
+      setFromDate("");
+      setToDate("");
+      return;
+    }
+    const from = new Date();
+    from.setDate(from.getDate() - days);
+    setFromDate(from.toISOString().slice(0, 10));
+    setToDate("");
+    setActivePreset(key);
+  };
 
   const filtered = useMemo(() => {
     return fills.filter((fill) => {
@@ -62,7 +85,11 @@ export default function HistoriquePage() {
               Tous
             </button>
             {vehicles.map((v) => (
-              <button key={v.id} onClick={() => setVehicleFilter(v.id)} className={chipClass(vehicleFilter === v.id)}>
+              <button
+                key={v.id}
+                onClick={() => setVehicleFilter(vehicleFilter === v.id ? "all" : v.id)}
+                className={chipClass(vehicleFilter === v.id)}
+              >
                 {v.name}
               </button>
             ))}
@@ -76,31 +103,55 @@ export default function HistoriquePage() {
               Toutes
             </button>
             {stations.map((s) => (
-              <button key={s.id} onClick={() => setStationFilter(s.id)} className={chipClass(stationFilter === s.id)}>
+              <button
+                key={s.id}
+                onClick={() => setStationFilter(stationFilter === s.id ? "all" : s.id)}
+                className={chipClass(stationFilter === s.id)}
+              >
                 {s.name}
               </button>
             ))}
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Du</label>
-            <input
-              type="date"
-              value={fromDate}
-              onChange={(e) => setFromDate(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
-            />
+        <div>
+          <label className="block text-sm font-medium text-gray-500 mb-2">Période</label>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 mb-3">
+            {DATE_PRESETS.map((preset) => (
+              <button
+                key={preset.key}
+                onClick={() => applyPreset(preset.key, preset.days)}
+                className={chipClass(activePreset === preset.key)}
+              >
+                {preset.label}
+              </button>
+            ))}
           </div>
-          <div>
-            <label className="block text-sm font-medium text-gray-500 mb-2">Au</label>
-            <input
-              type="date"
-              value={toDate}
-              onChange={(e) => setToDate(e.target.value)}
-              className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
-            />
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Du</label>
+              <input
+                type="date"
+                value={fromDate}
+                onChange={(e) => {
+                  setFromDate(e.target.value);
+                  setActivePreset(null);
+                }}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-400 mb-1">Au</label>
+              <input
+                type="date"
+                value={toDate}
+                onChange={(e) => {
+                  setToDate(e.target.value);
+                  setActivePreset(null);
+                }}
+                className="w-full px-3 py-2.5 border border-gray-200 rounded-xl text-sm"
+              />
+            </div>
           </div>
         </div>
 
@@ -112,7 +163,7 @@ export default function HistoriquePage() {
           <div className="space-y-2">
             {filtered.map((fill) => (
               <div key={fill.id} className="bg-white border border-gray-100 rounded-xl p-3">
-                <div className="flex justify-between">
+                <div className="flex justify-between items-start">
                   <div>
                     <p className="font-semibold text-gray-900">{fill.vehicles?.name}</p>
                     <p className="text-sm text-gray-500">{fill.stations?.name}</p>
@@ -120,19 +171,19 @@ export default function HistoriquePage() {
                       {new Date(fill.date).toLocaleDateString("fr-FR")} · {fill.mileage.toLocaleString("fr-FR")} km
                     </p>
                   </div>
-                  <div className="text-right">
-                    <p className="font-bold text-indigo-600">{fill.total_cost} €</p>
-                    <p className="text-xs text-gray-400">{fill.liters} L</p>
+                  <div className="flex items-start gap-3">
+                    <div className="text-right">
+                      <p className="font-bold text-indigo-600">{fill.total_cost} €</p>
+                      <p className="text-xs text-gray-400">{fill.liters} L</p>
+                    </div>
+                    <button
+                      onClick={() => setEditingFill(fill)}
+                      aria-label="Modifier ce plein"
+                      className="p-2 -mr-2 text-gray-300 active:bg-gray-100 rounded-lg"
+                    >
+                      ✎
+                    </button>
                   </div>
-                </div>
-                <div className="flex justify-end mt-2 pt-2 border-t border-gray-50">
-                  <button
-                    onClick={() => setEditingFill(fill)}
-                    aria-label="Modifier ce plein"
-                    className="p-2 text-gray-300 active:bg-gray-100 rounded-lg"
-                  >
-                    ✎
-                  </button>
                 </div>
               </div>
             ))}
