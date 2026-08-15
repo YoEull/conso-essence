@@ -18,7 +18,7 @@ import {
 import { ChipPicker } from "@/components/ChipPicker";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/lib/i18n";
-import { useUnits, VOLUME_EXAMPLES, DISTANCE_EXAMPLES } from "@/lib/units";
+import { useUnits, VOLUME_EXAMPLES, DISTANCE_EXAMPLES, currencySymbolFor, volumeLabelFor, distanceLabelFor } from "@/lib/units";
 
 const LONG_PRESS_MS = 500;
 const EDIT_WINDOW_MS = 8 * 60 * 60 * 1000;
@@ -27,19 +27,7 @@ export default function Home() {
   const router = useRouter();
   const { t, lang } = useLanguage();
   const locale = lang === "fr" ? "fr-FR" : "en-US";
-  const {
-    volumeUnit,
-    distanceUnit,
-    volumeLabel,
-    distanceLabel,
-    currencySymbol,
-    volumeToDisplay,
-    distanceToDisplay,
-    pricePerVolumeToDisplay,
-    volumeFromDisplay,
-    distanceFromDisplay,
-    pricePerVolumeFromDisplay,
-  } = useUnits();
+  const { volumeUnit, distanceUnit, currency, volumeLabel, distanceLabel, currencySymbol } = useUnits();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [fills, setFills] = useState<Fill[]>([]);
@@ -126,10 +114,13 @@ export default function Home() {
       await addFill({
         vehicle_id: Number(selectedVehicleId),
         station_id: Number(selectedStationId),
-        mileage: distanceFromDisplay(parseFloat(odometer)),
-        price_per_liter: pricePerVolumeFromDisplay(parseFloat(price)),
-        liters: volumeFromDisplay(parseFloat(volume)),
+        odometer: parseFloat(odometer),
+        distance_unit: distanceUnit,
+        price_per_unit: parseFloat(price),
+        volume: parseFloat(volume),
+        volume_unit: volumeUnit,
         total_cost: Number((parseFloat(price) * parseFloat(volume)).toFixed(2)),
+        currency,
       });
 
       setOdometer("");
@@ -275,15 +266,15 @@ export default function Home() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">{fill.stations?.name}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
                       {new Date(fill.date).toLocaleDateString(locale)} ·{" "}
-                      {Math.round(distanceToDisplay(fill.mileage)).toLocaleString(locale)} {distanceLabel}
+                      {Math.round(fill.odometer).toLocaleString(locale)} {distanceLabelFor(fill.distance_unit)}
                     </p>
                   </div>
                   <div className="text-right">
                     <p className="font-bold text-indigo-600 dark:text-indigo-400">
-                      {fill.total_cost} {currencySymbol}
+                      {fill.total_cost} {currencySymbolFor(fill.currency)}
                     </p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {volumeToDisplay(fill.liters).toFixed(1)} {volumeLabel}
+                      {fill.volume.toFixed(1)} {volumeLabelFor(fill.volume_unit)}
                     </p>
                   </div>
                 </div>

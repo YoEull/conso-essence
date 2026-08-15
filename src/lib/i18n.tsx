@@ -65,6 +65,7 @@ const translations = {
     editLabel: "Modifier",
 
     unitsTitle: "Unités",
+    unit: "Unité",
     distance: "Distance",
     currency: "Devise",
   },
@@ -128,6 +129,7 @@ const translations = {
     editLabel: "Edit",
 
     unitsTitle: "Units",
+    unit: "Unit",
     distance: "Distance",
     currency: "Currency",
   },

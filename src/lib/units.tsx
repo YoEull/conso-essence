@@ -6,18 +6,6 @@ export type VolumeUnit = "L" | "gal_us" | "gal_uk";
 export type DistanceUnit = "km" | "mi";
 export type CurrencyCode = "EUR" | "USD" | "GBP" | "JPY" | "CNY" | "CAD" | "INR" | "KRW" | "CHF" | "AUD";
 
-// Conversion factors are "display units per 1 canonical unit" (liters, km).
-const VOLUME_FACTORS: Record<VolumeUnit, number> = {
-  L: 1,
-  gal_us: 1 / 3.785411784,
-  gal_uk: 1 / 4.54609,
-};
-
-const DISTANCE_FACTORS: Record<DistanceUnit, number> = {
-  km: 1,
-  mi: 1 / 1.609344,
-};
-
 export const VOLUME_LABELS: Record<VolumeUnit, string> = {
   L: "L",
   gal_us: "gal (US)",
@@ -53,6 +41,22 @@ export const CURRENCIES: Record<CurrencyCode, { symbol: string; label: string }>
   AUD: { symbol: "$", label: "Australian Dollar" },
 };
 
+// Every fill stores its own volume_unit/distance_unit/currency (single
+// source of truth, no conversion). These helpers look up the label/symbol
+// for an arbitrary stored code — NOT the current global preference below,
+// which only supplies the default for new entries in Paramètres.
+export function volumeLabelFor(unit: string): string {
+  return (VOLUME_LABELS as Record<string, string>)[unit] ?? unit;
+}
+
+export function distanceLabelFor(unit: string): string {
+  return (DISTANCE_LABELS as Record<string, string>)[unit] ?? unit;
+}
+
+export function currencySymbolFor(code: string): string {
+  return (CURRENCIES as Record<string, { symbol: string; label: string }>)[code]?.symbol ?? code;
+}
+
 type UnitsState = {
   volumeUnit: VolumeUnit;
   distanceUnit: DistanceUnit;
@@ -63,14 +67,6 @@ type UnitsState = {
   currencySymbol: string;
   volumeLabel: string;
   distanceLabel: string;
-  // Canonical (DB: liters, km) -> display value
-  volumeToDisplay: (liters: number) => number;
-  distanceToDisplay: (km: number) => number;
-  pricePerVolumeToDisplay: (pricePerLiter: number) => number;
-  // Display value (user input) -> canonical (DB: liters, km)
-  volumeFromDisplay: (value: number) => number;
-  distanceFromDisplay: (value: number) => number;
-  pricePerVolumeFromDisplay: (value: number) => number;
 };
 
 const UnitsContext = createContext<UnitsState | null>(null);
@@ -82,9 +78,9 @@ export function UnitsProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const storedVolume = localStorage.getItem("volumeUnit");
-    if (storedVolume && storedVolume in VOLUME_FACTORS) setVolumeUnitState(storedVolume as VolumeUnit);
+    if (storedVolume && storedVolume in VOLUME_LABELS) setVolumeUnitState(storedVolume as VolumeUnit);
     const storedDistance = localStorage.getItem("distanceUnit");
-    if (storedDistance && storedDistance in DISTANCE_FACTORS) setDistanceUnitState(storedDistance as DistanceUnit);
+    if (storedDistance && storedDistance in DISTANCE_LABELS) setDistanceUnitState(storedDistance as DistanceUnit);
     const storedCurrency = localStorage.getItem("currency");
     if (storedCurrency && storedCurrency in CURRENCIES) setCurrencyState(storedCurrency as CurrencyCode);
   }, []);
@@ -102,9 +98,6 @@ export function UnitsProvider({ children }: { children: ReactNode }) {
     localStorage.setItem("currency", c);
   };
 
-  const volumeFactor = VOLUME_FACTORS[volumeUnit];
-  const distanceFactor = DISTANCE_FACTORS[distanceUnit];
-
   const value: UnitsState = {
     volumeUnit,
     distanceUnit,
@@ -115,12 +108,6 @@ export function UnitsProvider({ children }: { children: ReactNode }) {
     currencySymbol: CURRENCIES[currency].symbol,
     volumeLabel: VOLUME_LABELS[volumeUnit],
     distanceLabel: DISTANCE_LABELS[distanceUnit],
-    volumeToDisplay: (liters) => liters * volumeFactor,
-    distanceToDisplay: (km) => km * distanceFactor,
-    pricePerVolumeToDisplay: (pricePerLiter) => pricePerLiter / volumeFactor,
-    volumeFromDisplay: (value) => value / volumeFactor,
-    distanceFromDisplay: (value) => value / distanceFactor,
-    pricePerVolumeFromDisplay: (value) => value * volumeFactor,
   };
 
   return <UnitsContext.Provider value={value}>{children}</UnitsContext.Provider>;

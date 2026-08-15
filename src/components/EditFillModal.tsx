@@ -4,7 +4,23 @@ import { useState } from "react";
 import { ChipPicker } from "@/components/ChipPicker";
 import { updateFill, FullFill, Vehicle, Station } from "@/lib/data";
 import { useLanguage } from "@/lib/i18n";
-import { useUnits } from "@/lib/units";
+import {
+  CURRENCIES,
+  VOLUME_LABELS,
+  DISTANCE_LABELS,
+  currencySymbolFor,
+  type CurrencyCode,
+  type VolumeUnit,
+  type DistanceUnit,
+} from "@/lib/units";
+
+function chipClass(active: boolean) {
+  return `flex-1 py-2.5 rounded-lg text-sm font-medium border ${
+    active
+      ? "bg-indigo-600 border-indigo-600 text-white"
+      : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200"
+  }`;
+}
 
 export function EditFillModal({
   fill,
@@ -20,22 +36,14 @@ export function EditFillModal({
   onSaved: () => void;
 }) {
   const { t } = useLanguage();
-  const {
-    volumeLabel,
-    distanceLabel,
-    currencySymbol,
-    volumeToDisplay,
-    distanceToDisplay,
-    pricePerVolumeToDisplay,
-    volumeFromDisplay,
-    distanceFromDisplay,
-    pricePerVolumeFromDisplay,
-  } = useUnits();
   const [vehicleId, setVehicleId] = useState<number | "">(fill.vehicle_id);
   const [stationId, setStationId] = useState<number | "">(fill.station_id);
-  const [odometer, setOdometer] = useState(String(distanceToDisplay(fill.mileage)));
-  const [price, setPrice] = useState(String(pricePerVolumeToDisplay(fill.price_per_liter)));
-  const [volume, setVolume] = useState(String(volumeToDisplay(fill.liters)));
+  const [odometer, setOdometer] = useState(String(fill.odometer));
+  const [distanceUnit, setDistanceUnit] = useState(fill.distance_unit as DistanceUnit);
+  const [price, setPrice] = useState(String(fill.price_per_unit));
+  const [volume, setVolume] = useState(String(fill.volume));
+  const [volumeUnit, setVolumeUnit] = useState(fill.volume_unit as VolumeUnit);
+  const [currency, setCurrency] = useState(fill.currency);
   const [date, setDate] = useState(fill.date.slice(0, 10));
   const [saving, setSaving] = useState(false);
 
@@ -53,10 +61,13 @@ export function EditFillModal({
       await updateFill(fill.id, {
         vehicle_id: Number(vehicleId),
         station_id: Number(stationId),
-        mileage: distanceFromDisplay(parseFloat(odometer)),
-        price_per_liter: pricePerVolumeFromDisplay(parseFloat(price)),
-        liters: volumeFromDisplay(parseFloat(volume)),
+        odometer: parseFloat(odometer),
+        distance_unit: distanceUnit,
+        price_per_unit: parseFloat(price),
+        volume: parseFloat(volume),
+        volume_unit: volumeUnit,
         total_cost: Number((parseFloat(price) * parseFloat(volume)).toFixed(2)),
+        currency,
         date: new Date(date).toISOString(),
       });
       onSaved();
@@ -92,7 +103,7 @@ export function EditFillModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>
-              {t("price")} / {volumeLabel} ({currencySymbol})
+              {t("price")} / {VOLUME_LABELS[volumeUnit]} ({currencySymbolFor(currency)})
             </label>
             <input
               type="number"
@@ -105,7 +116,7 @@ export function EditFillModal({
           </div>
           <div>
             <label className={labelClass}>
-              {t("volume")} ({volumeLabel})
+              {t("volume")} ({VOLUME_LABELS[volumeUnit]})
             </label>
             <input
               type="number"
@@ -120,7 +131,40 @@ export function EditFillModal({
 
         <div>
           <label className={labelClass}>
-            {t("odometer")} ({distanceLabel})
+            {t("volume")} — {t("unit")}
+          </label>
+          <div className="flex gap-2">
+            {(Object.keys(VOLUME_LABELS) as VolumeUnit[]).map((unit) => (
+              <button
+                key={unit}
+                type="button"
+                onClick={() => setVolumeUnit(unit)}
+                className={chipClass(volumeUnit === unit)}
+              >
+                {VOLUME_LABELS[unit]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <div>
+          <label className={labelClass}>{t("currency")}</label>
+          <select
+            value={currency}
+            onChange={(e) => setCurrency(e.target.value)}
+            className="w-full px-4 py-3 border border-gray-200 dark:border-gray-700 rounded-xl text-sm bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
+          >
+            {(Object.keys(CURRENCIES) as CurrencyCode[]).map((code) => (
+              <option key={code} value={code}>
+                {CURRENCIES[code].symbol} {code} — {CURRENCIES[code].label}
+              </option>
+            ))}
+          </select>
+        </div>
+
+        <div>
+          <label className={labelClass}>
+            {t("odometer")} ({DISTANCE_LABELS[distanceUnit]})
           </label>
           <input
             type="number"
@@ -129,6 +173,24 @@ export function EditFillModal({
             onChange={(e) => setOdometer(e.target.value)}
             className={inputClass}
           />
+        </div>
+
+        <div>
+          <label className={labelClass}>
+            {t("odometer")} — {t("unit")}
+          </label>
+          <div className="flex gap-2">
+            {(Object.keys(DISTANCE_LABELS) as DistanceUnit[]).map((unit) => (
+              <button
+                key={unit}
+                type="button"
+                onClick={() => setDistanceUnit(unit)}
+                className={chipClass(distanceUnit === unit)}
+              >
+                {DISTANCE_LABELS[unit]}
+              </button>
+            ))}
+          </div>
         </div>
 
         <button

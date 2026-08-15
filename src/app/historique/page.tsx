@@ -6,7 +6,7 @@ import { AppHeader } from "@/components/AppHeader";
 import { EditFillModal } from "@/components/EditFillModal";
 import { getAllFills, getVehicles, getStations, FullFill, Vehicle, Station } from "@/lib/data";
 import { useLanguage } from "@/lib/i18n";
-import { useUnits } from "@/lib/units";
+import { currencySymbolFor, volumeLabelFor, distanceLabelFor } from "@/lib/units";
 
 function chipClass(active: boolean) {
   return `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border ${
@@ -29,7 +29,6 @@ function HistoriqueContent() {
   const searchParams = useSearchParams();
   const { t, lang } = useLanguage();
   const locale = lang === "fr" ? "fr-FR" : "en-US";
-  const { volumeLabel, distanceLabel, currencySymbol, volumeToDisplay, distanceToDisplay } = useUnits();
   const [fills, setFills] = useState<FullFill[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
@@ -195,16 +194,16 @@ function HistoriqueContent() {
                     <p className="text-sm text-gray-500 dark:text-gray-400">{fill.stations?.name}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
                       {new Date(fill.date).toLocaleDateString(locale)} ·{" "}
-                      {Math.round(distanceToDisplay(fill.mileage)).toLocaleString(locale)} {distanceLabel}
+                      {Math.round(fill.odometer).toLocaleString(locale)} {distanceLabelFor(fill.distance_unit)}
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
                     <div className="text-right">
                       <p className="font-bold text-indigo-600 dark:text-indigo-400">
-                        {fill.total_cost} {currencySymbol}
+                        {fill.total_cost} {currencySymbolFor(fill.currency)}
                       </p>
                       <p className="text-xs text-gray-400 dark:text-gray-500">
-                        {volumeToDisplay(fill.liters).toFixed(1)} {volumeLabel}
+                        {fill.volume.toFixed(1)} {volumeLabelFor(fill.volume_unit)}
                       </p>
                     </div>
                     <button

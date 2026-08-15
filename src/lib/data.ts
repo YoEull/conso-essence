@@ -5,10 +5,13 @@ export type Station = { id: number; name: string };
 export type Fill = {
   id: number;
   date: string;
-  mileage: number;
-  price_per_liter: number;
-  liters: number;
+  odometer: number;
+  distance_unit: string;
+  price_per_unit: number;
+  volume: number;
+  volume_unit: string;
   total_cost: number;
+  currency: string;
   vehicles: { name: string } | null;
   stations: { name: string } | null;
 };
@@ -25,10 +28,13 @@ export async function getStations(): Promise<Station[]> {
   return data;
 }
 
+const FILL_COLUMNS =
+  "id, date, odometer, distance_unit, price_per_unit, volume, volume_unit, total_cost, currency";
+
 export async function getFills(): Promise<Fill[]> {
   const { data, error } = await supabase
     .from("fills")
-    .select("id, date, mileage, price_per_liter, liters, total_cost, vehicles(name), stations(name)")
+    .select(`${FILL_COLUMNS}, vehicles(name), stations(name)`)
     .order("date", { ascending: false })
     .limit(5);
   if (error) throw error;
@@ -40,9 +46,7 @@ export type FullFill = Fill & { vehicle_id: number; station_id: number };
 export async function getAllFills(): Promise<FullFill[]> {
   const { data, error } = await supabase
     .from("fills")
-    .select(
-      "id, date, mileage, price_per_liter, liters, total_cost, vehicle_id, station_id, vehicles(name), stations(name)"
-    )
+    .select(`${FILL_COLUMNS}, vehicle_id, station_id, vehicles(name), stations(name)`)
     .order("date", { ascending: false })
     .limit(2000);
   if (error) throw error;
@@ -106,10 +110,13 @@ export async function upsertStation(name: string): Promise<Station> {
 export async function addFill(fill: {
   vehicle_id: number;
   station_id: number;
-  mileage: number;
-  price_per_liter: number;
-  liters: number;
+  odometer: number;
+  distance_unit: string;
+  price_per_unit: number;
+  volume: number;
+  volume_unit: string;
   total_cost: number;
+  currency: string;
 }): Promise<void> {
   const { error } = await supabase.from("fills").insert(fill);
   if (error) throw error;
@@ -120,10 +127,13 @@ export async function updateFill(
   fill: {
     vehicle_id: number;
     station_id: number;
-    mileage: number;
-    price_per_liter: number;
-    liters: number;
+    odometer: number;
+    distance_unit: string;
+    price_per_unit: number;
+    volume: number;
+    volume_unit: string;
     total_cost: number;
+    currency: string;
     date: string;
   }
 ): Promise<void> {
