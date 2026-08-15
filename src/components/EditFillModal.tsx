@@ -103,7 +103,7 @@ export function EditFillModal({
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className={labelClass}>
-              {t("price")} / {VOLUME_LABELS[volumeUnit]} ({currencySymbolFor(currency)})
+              {t("price")} ({currencySymbolFor(currency)}/{VOLUME_LABELS[volumeUnit]})
             </label>
             <input
               type="number"

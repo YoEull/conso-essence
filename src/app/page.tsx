@@ -203,7 +203,7 @@ export default function Home() {
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className={labelClass}>
-                {t("price")} / {volumeLabel} ({currencySymbol})
+                {t("price")} ({currencySymbol}/{volumeLabel})
               </label>
               <input
                 type="number"
