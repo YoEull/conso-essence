@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { Suspense, useEffect, useMemo, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { EditFillModal } from "@/components/EditFillModal";
 import { getAllFills, getVehicles, getStations, FullFill, Vehicle, Station } from "@/lib/data";
@@ -19,7 +20,9 @@ const DATE_PRESETS: { key: string; label: string; days: number }[] = [
   { key: "1y", label: "1y", days: 365 },
 ];
 
-export default function HistoriquePage() {
+function HistoriqueContent() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
   const [fills, setFills] = useState<FullFill[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
@@ -48,6 +51,16 @@ export default function HistoriquePage() {
   useEffect(() => {
     load();
   }, []);
+
+  // Deep link from "Nouveau plein" (long-press → Éditer) opens this fill directly.
+  useEffect(() => {
+    const editId = searchParams.get("edit");
+    if (editId && fills.length > 0) {
+      const target = fills.find((f) => f.id === Number(editId));
+      if (target) setEditingFill(target);
+      router.replace("/historique");
+    }
+  }, [fills, searchParams, router]);
 
   const applyPreset = (key: string, days: number) => {
     if (activePreset === key) {
@@ -98,7 +111,7 @@ export default function HistoriquePage() {
 
         <div>
           <label className="block text-sm font-medium text-gray-500 mb-2">Station</label>
-          <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
+          <div className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-1 -mx-4 px-4">
             <button onClick={() => setStationFilter("all")} className={chipClass(stationFilter === "all")}>
               Toutes
             </button>
@@ -204,5 +217,13 @@ export default function HistoriquePage() {
         />
       )}
     </div>
+  );
+}
+
+export default function HistoriquePage() {
+  return (
+    <Suspense fallback={null}>
+      <HistoriqueContent />
+    </Suspense>
   );
 }

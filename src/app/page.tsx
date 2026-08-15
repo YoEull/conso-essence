@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import {
   Vehicle,
   Station,
@@ -17,11 +18,18 @@ import {
 import { ChipPicker } from "@/components/ChipPicker";
 import { AppHeader } from "@/components/AppHeader";
 
+const LONG_PRESS_MS = 500;
+const EDIT_WINDOW_MS = 8 * 60 * 60 * 1000;
+
 export default function Home() {
+  const router = useRouter();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [fills, setFills] = useState<Fill[]>([]);
   const [loading, setLoading] = useState(false);
+  const [longPressFill, setLongPressFill] = useState<Fill | null>(null);
+  const pressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pressMovedRef = useRef(false);
 
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | "">("");
   const [mileage, setMileage] = useState("");
@@ -122,6 +130,24 @@ export default function Home() {
   const totalCost =
     pricePerLiter && liters ? (parseFloat(pricePerLiter) * parseFloat(liters)).toFixed(2) : null;
 
+  const isEditableNow = (fill: Fill) => Date.now() - new Date(fill.date).getTime() <= EDIT_WINDOW_MS;
+
+  const handlePressStart = (fill: Fill) => {
+    pressMovedRef.current = false;
+    pressTimerRef.current = setTimeout(() => {
+      if (!pressMovedRef.current) setLongPressFill(fill);
+    }, LONG_PRESS_MS);
+  };
+
+  const handlePressMove = () => {
+    pressMovedRef.current = true;
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+  };
+
+  const handlePressEnd = () => {
+    if (pressTimerRef.current) clearTimeout(pressTimerRef.current);
+  };
+
   return (
     <div className="min-h-dvh bg-gray-50 flex flex-col">
       <AppHeader
@@ -199,7 +225,13 @@ export default function Home() {
             <h2 className="text-sm font-semibold text-gray-500 mb-3">Dernières entrées</h2>
             <div className="space-y-2">
               {fills.map((fill) => (
-                <div key={fill.id} className="bg-white border border-gray-100 rounded-xl p-3 flex justify-between">
+                <div
+                  key={fill.id}
+                  onTouchStart={() => handlePressStart(fill)}
+                  onTouchMove={handlePressMove}
+                  onTouchEnd={handlePressEnd}
+                  className="bg-white border border-gray-100 rounded-xl p-3 flex justify-between select-none"
+                >
                   <div>
                     <p className="font-semibold text-gray-900">{fill.vehicles?.name}</p>
                     <p className="text-sm text-gray-500">{fill.stations?.name}</p>
@@ -232,6 +264,56 @@ export default function Home() {
           {loading ? "Enregistrement..." : "Enregistrer le plein"}
         </button>
       </footer>
+
+      {longPressFill && (
+        <div className="fixed inset-0 z-40 flex items-end" onClick={() => setLongPressFill(null)}>
+          <div className="absolute inset-0 bg-black/30" />
+          <div
+            className="relative bg-white w-full rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {isEditableNow(longPressFill) ? (
+              <>
+                <p className="text-sm text-gray-600">
+                  {longPressFill.vehicles?.name} · {longPressFill.stations?.name} ·{" "}
+                  {new Date(longPressFill.date).toLocaleDateString("fr-FR")}
+                </p>
+                <button
+                  onClick={() => router.push(`/historique?edit=${longPressFill.id}`)}
+                  className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl"
+                >
+                  Éditer
+                </button>
+                <button
+                  onClick={() => setLongPressFill(null)}
+                  className="w-full py-3 bg-gray-100 text-gray-600 font-semibold rounded-xl"
+                >
+                  Annuler
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-gray-600">
+                  La modification rapide n&apos;est possible que dans les 8h suivant la saisie. Rendez-vous dans
+                  Historique pour modifier cette entrée.
+                </p>
+                <button
+                  onClick={() => router.push("/historique")}
+                  className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl"
+                >
+                  Aller dans Historique
+                </button>
+                <button
+                  onClick={() => setLongPressFill(null)}
+                  className="w-full py-3 bg-gray-100 text-gray-600 font-semibold rounded-xl"
+                >
+                  Fermer
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }

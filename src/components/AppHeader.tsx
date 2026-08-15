@@ -5,30 +5,45 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 const NAV_LINKS = [
-  { href: "/", icon: "⛽", label: "Nouveau plein" },
+  { href: "/", icon: "💧", label: "Nouveau plein" },
   { href: "/historique", icon: "🕓", label: "Historique" },
   { href: "/parametres", icon: "⚙️", label: "Paramètres" },
 ];
 
-const EDGE_ZONE_PX = 24;
-const SWIPE_THRESHOLD_PX = 60;
+const SWIPE_THRESHOLD_PX = 50;
+
+// Swiping inside a horizontally-scrollable chip row should scroll it,
+// not open the drawer — walk up from the touch target to check.
+function isInsideHorizontalScroller(target: EventTarget | null): boolean {
+  let node = target as HTMLElement | null;
+  while (node && node !== document.body) {
+    if (node.scrollWidth > node.clientWidth + 1) {
+      const overflowX = getComputedStyle(node).overflowX;
+      if (overflowX === "auto" || overflowX === "scroll") return true;
+    }
+    node = node.parentElement;
+  }
+  return false;
+}
 
 export function AppHeader({ title, rightAction }: { title: string; rightAction?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
   const touchStartX = useRef(0);
 
-  // Edge-swipe from the left, anywhere on the page, opens the drawer.
+  // A left-to-right swipe starting anywhere on the page (outside horizontal
+  // scrollers) opens the drawer, same as tapping the burger button.
   useEffect(() => {
     let tracking = false;
     let startX = 0;
     let startY = 0;
 
     const onTouchStart = (e: TouchEvent) => {
+      if (open) return;
       const touch = e.touches[0];
       startX = touch.clientX;
       startY = touch.clientY;
-      tracking = startX < EDGE_ZONE_PX;
+      tracking = !isInsideHorizontalScroller(e.target);
     };
 
     const onTouchMove = (e: TouchEvent) => {
@@ -54,7 +69,7 @@ export function AppHeader({ title, rightAction }: { title: string; rightAction?:
       document.removeEventListener("touchmove", onTouchMove);
       document.removeEventListener("touchend", onTouchEnd);
     };
-  }, []);
+  }, [open]);
 
   return (
     <>
