@@ -3,12 +3,7 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const NAV_LINKS = [
-  { href: "/", icon: "💧", label: "Nouveau plein" },
-  { href: "/historique", icon: "🕓", label: "Historique" },
-];
-const SETTINGS_LINK = { href: "/parametres", icon: "⚙️", label: "Paramètres" };
+import { useLanguage } from "@/lib/i18n";
 
 // Drag distance (as a fraction of screen width) needed to go from fully
 // closed to fully open — always relative, never a hardcoded pixel value.
@@ -31,6 +26,13 @@ export function AppHeader({ title, rightAction }: { title: string; rightAction?:
   const [open, setOpen] = useState(false);
   const [dragRatio, setDragRatio] = useState<number | null>(null);
   const pathname = usePathname();
+  const { t } = useLanguage();
+
+  const NAV_LINKS = [
+    { href: "/", icon: "💧", label: t("navNewFill") },
+    { href: "/historique", icon: "🕓", label: t("navHistory") },
+  ];
+  const SETTINGS_LINK = { href: "/parametres", icon: "⚙️", label: t("navSettings") };
 
   const openRef = useRef(open);
   openRef.current = open;
@@ -107,16 +109,16 @@ export function AppHeader({ title, rightAction }: { title: string; rightAction?:
 
   return (
     <>
-      <header className="sticky top-0 z-20 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-20 bg-white dark:bg-gray-900 border-b border-gray-100 dark:border-gray-800 px-4 py-2 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
             onClick={() => setOpen(true)}
-            aria-label="Menu"
+            aria-label={t("menu")}
             className="p-2 -ml-2 rounded-lg text-gray-700 dark:text-gray-200 active:bg-gray-100 dark:active:bg-gray-800"
           >
             ☰
           </button>
-          <h1 className="text-lg font-bold text-gray-900 dark:text-gray-50">{title}</h1>
+          <h1 className="text-base font-bold text-gray-900 dark:text-gray-50">{title}</h1>
         </div>
         {rightAction}
       </header>
@@ -137,7 +139,7 @@ export function AppHeader({ title, rightAction }: { title: string; rightAction?:
             transition: isDragging ? "none" : "transform 200ms",
           }}
         >
-          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase px-1 mb-4">Suivi Essence</p>
+          <p className="text-xs font-semibold text-gray-400 dark:text-gray-500 uppercase px-1 mb-4">{t("appTitle")}</p>
 
           <div className="flex-1 flex flex-col justify-center gap-3">
             {NAV_LINKS.map((link) => (

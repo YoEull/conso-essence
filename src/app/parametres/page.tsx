@@ -4,6 +4,8 @@ import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
 import { EditableNameList } from "@/components/EditableNameList";
 import { ThemeToggle } from "@/components/ThemeToggle";
+import { LanguageToggle } from "@/components/LanguageToggle";
+import { useLanguage } from "@/lib/i18n";
 import {
   getVehicles,
   getStations,
@@ -15,6 +17,8 @@ import {
 } from "@/lib/data";
 
 export default function ParametresPage() {
+  const { t, lang } = useLanguage();
+  const locale = lang === "fr" ? "fr-FR" : "en-US";
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
@@ -27,7 +31,7 @@ export default function ParametresPage() {
       setVehicles(v);
       setStations(s);
     } catch (e) {
-      alert("Erreur de chargement : " + (e as Error).message);
+      alert(t("loadError") + (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -35,6 +39,7 @@ export default function ParametresPage() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const handleExport = async () => {
@@ -45,27 +50,27 @@ export default function ParametresPage() {
 
       const fillsSheet = XLSX.utils.json_to_sheet(
         fills.map((f) => ({
-          Date: new Date(f.date).toLocaleDateString("fr-FR"),
-          Véhicule: f.vehicles?.name ?? "",
-          Station: f.stations?.name ?? "",
-          "Kilométrage (km)": f.mileage,
-          "Prix / L (€)": f.price_per_liter,
-          "Litres (L)": f.liters,
-          "Coût total (€)": f.total_cost,
+          [t("date")]: new Date(f.date).toLocaleDateString(locale),
+          [t("vehicle")]: f.vehicles?.name ?? "",
+          [t("station")]: f.stations?.name ?? "",
+          [t("mileage")]: f.mileage,
+          [t("pricePerLiter")]: f.price_per_liter,
+          [t("liters")]: f.liters,
+          [t("totalCost")]: f.total_cost,
         }))
       );
-      const vehiclesSheet = XLSX.utils.json_to_sheet(allVehicles.map((v) => ({ Véhicule: v.name })));
-      const stationsSheet = XLSX.utils.json_to_sheet(allStations.map((s) => ({ Station: s.name })));
+      const vehiclesSheet = XLSX.utils.json_to_sheet(allVehicles.map((v) => ({ [t("vehicle")]: v.name })));
+      const stationsSheet = XLSX.utils.json_to_sheet(allStations.map((s) => ({ [t("station")]: s.name })));
 
       const workbook = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(workbook, fillsSheet, "Pleins");
-      XLSX.utils.book_append_sheet(workbook, vehiclesSheet, "Véhicules");
-      XLSX.utils.book_append_sheet(workbook, stationsSheet, "Stations");
+      XLSX.utils.book_append_sheet(workbook, fillsSheet, t("fillsSheet"));
+      XLSX.utils.book_append_sheet(workbook, vehiclesSheet, t("vehicles"));
+      XLSX.utils.book_append_sheet(workbook, stationsSheet, t("stations"));
 
       const date = new Date().toISOString().slice(0, 10);
       XLSX.writeFile(workbook, `suivi-essence-${date}.xlsx`);
     } catch (e) {
-      alert("Erreur export : " + (e as Error).message);
+      alert(t("exportError") + (e as Error).message);
     } finally {
       setExporting(false);
     }
@@ -75,32 +80,32 @@ export default function ParametresPage() {
 
   return (
     <div className="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col">
-      <AppHeader title="⚙️ Paramètres" />
+      <AppHeader title={t("settingsTitle")} />
 
       <main className="flex-1 overflow-y-auto px-4 py-5 space-y-6 pb-10">
         <section className={blockClass}>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Apparence</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("appearance")}</h2>
           <ThemeToggle />
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-4 mb-3">{t("language")}</h2>
+          <LanguageToggle />
         </section>
 
         <section className={blockClass}>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Export</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">
-            Génère un fichier Excel (.xlsx) avec l&apos;ensemble de vos pleins, véhicules et stations.
-          </p>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("export")}</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-3">{t("exportDescription")}</p>
           <button
             onClick={handleExport}
             disabled={exporting}
             className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl disabled:opacity-50"
           >
-            {exporting ? "Génération..." : "Télécharger l'export Excel (.xlsx)"}
+            {exporting ? t("generating") : t("downloadExport")}
           </button>
         </section>
 
         <section className={blockClass}>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Véhicules</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("vehicles")}</h2>
           {loading ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">Chargement...</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">{t("loading")}</p>
           ) : (
             <EditableNameList
               items={vehicles}
@@ -113,9 +118,9 @@ export default function ParametresPage() {
         </section>
 
         <section className={blockClass}>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Stations</h2>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("stations")}</h2>
           {loading ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">Chargement...</p>
+            <p className="text-sm text-gray-400 dark:text-gray-500">{t("loading")}</p>
           ) : (
             <EditableNameList
               items={stations}

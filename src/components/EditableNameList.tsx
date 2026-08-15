@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useLanguage } from "@/lib/i18n";
 
 type Item = { id: number; name: string };
 
@@ -11,6 +12,7 @@ export function EditableNameList({
   items: Item[];
   onRename: (id: number, name: string) => Promise<void>;
 }) {
+  const { t } = useLanguage();
   const [editingId, setEditingId] = useState<number | null>(null);
   const [draft, setDraft] = useState("");
   const [saving, setSaving] = useState(false);
@@ -28,7 +30,7 @@ export function EditableNameList({
       await onRename(id, trimmed);
       setEditingId(null);
     } catch (e) {
-      alert("Erreur : " + (e as Error).message);
+      alert(t("genericError") + (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -68,7 +70,7 @@ export function EditableNameList({
               <span className="flex-1 text-sm text-gray-900 dark:text-gray-100">{item.name}</span>
               <button
                 onClick={() => startEdit(item)}
-                aria-label={`Modifier ${item.name}`}
+                aria-label={`${t("editLabel")} ${item.name}`}
                 className="p-2 text-gray-400 dark:text-gray-500 active:bg-gray-100 dark:active:bg-gray-700 rounded-lg"
               >
                 ✎

@@ -17,12 +17,15 @@ import {
 } from "@/lib/data";
 import { ChipPicker } from "@/components/ChipPicker";
 import { AppHeader } from "@/components/AppHeader";
+import { useLanguage } from "@/lib/i18n";
 
 const LONG_PRESS_MS = 500;
 const EDIT_WINDOW_MS = 8 * 60 * 60 * 1000;
 
 export default function Home() {
   const router = useRouter();
+  const { t, lang } = useLanguage();
+  const locale = lang === "fr" ? "fr-FR" : "en-US";
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [fills, setFills] = useState<Fill[]>([]);
@@ -51,7 +54,7 @@ export default function Home() {
       setStations(rankByUsage(s, usage.map((u) => ({ id: u.station_id }))));
       setFills(f);
     } catch (e) {
-      alert("Erreur de chargement : " + (e as Error).message);
+      alert(t("loadError") + (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -61,6 +64,7 @@ export default function Home() {
     loadData();
     const lastVehicleId = localStorage.getItem("lastVehicleId");
     if (lastVehicleId) setSelectedVehicleId(Number(lastVehicleId));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const selectVehicle = (id: number | "") => {
@@ -91,7 +95,7 @@ export default function Home() {
       const { latitude, longitude } = position.coords;
       await addStation(`Station (${latitude.toFixed(4)}, ${longitude.toFixed(4)})`);
     } catch {
-      alert("Impossible d'obtenir votre position.");
+      alert(t("locationError"));
     } finally {
       setFindingStation(false);
     }
@@ -99,7 +103,7 @@ export default function Home() {
 
   const handleSubmit = async () => {
     if (!selectedVehicleId || !mileage || !pricePerLiter || !liters || !selectedStationId) {
-      alert("Veuillez remplir tous les champs");
+      alert(t("fillAllFields"));
       return;
     }
 
@@ -121,7 +125,7 @@ export default function Home() {
 
       await loadData();
     } catch (e) {
-      alert("Erreur : " + (e as Error).message);
+      alert(t("genericError") + (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -156,7 +160,7 @@ export default function Home() {
   return (
     <div className="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col">
       <AppHeader
-        title="Suivi Essence"
+        title={t("appTitle")}
         rightAction={
           <button
             onClick={loadData}
@@ -168,10 +172,10 @@ export default function Home() {
         }
       />
 
-      <main className="flex-1 overflow-y-auto px-4 py-5 space-y-4 pb-40">
+      <main className="flex-1 overflow-y-auto px-4 py-5 space-y-2 pb-40">
         <div className={blockClass}>
           <ChipPicker
-            label="Véhicule"
+            label={t("vehicle")}
             items={vehicles}
             selectedId={selectedVehicleId}
             onSelect={selectVehicle}
@@ -181,7 +185,7 @@ export default function Home() {
 
         <div className={blockClass}>
           <ChipPicker
-            label="Station"
+            label={t("station")}
             items={stations}
             selectedId={selectedStationId}
             onSelect={selectStation}
@@ -194,27 +198,27 @@ export default function Home() {
         <div className={`${blockClass} space-y-4`}>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>Prix / L (€)</label>
+              <label className={labelClass}>{t("pricePerLiter")}</label>
               <input
                 type="number"
                 inputMode="decimal"
                 step="0.001"
                 value={pricePerLiter}
                 onChange={(e) => setPricePerLiter(e.target.value)}
-                placeholder="Ex: 1.65"
+                placeholder={t("pricePlaceholder")}
                 className={inputClass}
                 disabled={loading}
               />
             </div>
             <div>
-              <label className={labelClass}>Litres</label>
+              <label className={labelClass}>{t("liters")}</label>
               <input
                 type="number"
                 inputMode="decimal"
                 step="0.01"
                 value={liters}
                 onChange={(e) => setLiters(e.target.value)}
-                placeholder="Ex: 45.5"
+                placeholder={t("litersPlaceholder")}
                 className={inputClass}
                 disabled={loading}
               />
@@ -222,13 +226,13 @@ export default function Home() {
           </div>
 
           <div>
-            <label className={labelClass}>Kilométrage (km)</label>
+            <label className={labelClass}>{t("mileage")}</label>
             <input
               type="number"
               inputMode="numeric"
               value={mileage}
               onChange={(e) => setMileage(e.target.value)}
-              placeholder="Ex: 45000"
+              placeholder={t("mileagePlaceholder")}
               className={inputClass}
               disabled={loading}
             />
@@ -237,7 +241,7 @@ export default function Home() {
 
         {fills.length > 0 && (
           <div className={blockClass}>
-            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">Dernières entrées</h2>
+            <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("recentEntries")}</h2>
             <div className="space-y-2">
               {fills.map((fill) => (
                 <div
@@ -251,7 +255,7 @@ export default function Home() {
                     <p className="font-semibold text-gray-900 dark:text-gray-50">{fill.vehicles?.name}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{fill.stations?.name}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {new Date(fill.date).toLocaleDateString("fr-FR")} · {fill.mileage.toLocaleString("fr-FR")} km
+                      {new Date(fill.date).toLocaleDateString(locale)} · {fill.mileage.toLocaleString(locale)} km
                     </p>
                   </div>
                   <div className="text-right">
@@ -268,7 +272,7 @@ export default function Home() {
       <footer className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {totalCost && (
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Total : <span className="font-bold text-indigo-600 dark:text-indigo-400">{totalCost} €</span>
+            {t("total")} : <span className="font-bold text-indigo-600 dark:text-indigo-400">{totalCost} €</span>
           </p>
         )}
         <button
@@ -276,7 +280,7 @@ export default function Home() {
           disabled={loading}
           className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl text-base active:bg-indigo-700 disabled:opacity-50"
         >
-          {loading ? "Enregistrement..." : "Enregistrer le plein"}
+          {loading ? t("saving") : t("saveFill")}
         </button>
       </footer>
 
@@ -291,38 +295,35 @@ export default function Home() {
               <>
                 <p className="text-sm text-gray-600 dark:text-gray-300">
                   {longPressFill.vehicles?.name} · {longPressFill.stations?.name} ·{" "}
-                  {new Date(longPressFill.date).toLocaleDateString("fr-FR")}
+                  {new Date(longPressFill.date).toLocaleDateString(locale)}
                 </p>
                 <button
                   onClick={() => router.push(`/historique?edit=${longPressFill.id}`)}
                   className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl"
                 >
-                  Éditer
+                  {t("edit")}
                 </button>
                 <button
                   onClick={() => setLongPressFill(null)}
                   className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold rounded-xl"
                 >
-                  Annuler
+                  {t("cancel")}
                 </button>
               </>
             ) : (
               <>
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  La modification rapide n&apos;est possible que dans les 8h suivant la saisie. Rendez-vous dans
-                  Historique pour modifier cette entrée.
-                </p>
+                <p className="text-sm text-gray-600 dark:text-gray-300">{t("editWithinWindow")}</p>
                 <button
                   onClick={() => router.push("/historique")}
                   className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-xl"
                 >
-                  Aller dans Historique
+                  {t("goToHistory")}
                 </button>
                 <button
                   onClick={() => setLongPressFill(null)}
                   className="w-full py-3 bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 font-semibold rounded-xl"
                 >
-                  Fermer
+                  {t("close")}
                 </button>
               </>
             )}

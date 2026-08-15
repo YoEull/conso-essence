@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { EditFillModal } from "@/components/EditFillModal";
 import { getAllFills, getVehicles, getStations, FullFill, Vehicle, Station } from "@/lib/data";
+import { useLanguage } from "@/lib/i18n";
 
 function chipClass(active: boolean) {
   return `shrink-0 whitespace-nowrap px-4 py-2 rounded-full text-sm font-medium border ${
@@ -25,6 +26,8 @@ const DATE_PRESETS: { key: string; label: string; days: number }[] = [
 function HistoriqueContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { t, lang } = useLanguage();
+  const locale = lang === "fr" ? "fr-FR" : "en-US";
   const [fills, setFills] = useState<FullFill[]>([]);
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
@@ -44,7 +47,7 @@ function HistoriqueContent() {
       setVehicles(v);
       setStations(s);
     } catch (e) {
-      alert("Erreur de chargement : " + (e as Error).message);
+      alert(t("loadError") + (e as Error).message);
     } finally {
       setLoading(false);
     }
@@ -52,6 +55,7 @@ function HistoriqueContent() {
 
   useEffect(() => {
     load();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Deep link from "Nouveau plein" (long-press → Éditer) opens this fill directly.
@@ -90,14 +94,14 @@ function HistoriqueContent() {
 
   return (
     <div className="min-h-dvh bg-gray-50 dark:bg-gray-950 flex flex-col">
-      <AppHeader title="Historique" />
+      <AppHeader title={t("historyTitle")} />
 
       <main className="flex-1 overflow-y-auto px-4 py-5 space-y-4 pb-10">
         <div>
-          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Véhicule</label>
+          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{t("vehicle")}</label>
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4">
             <button onClick={() => setVehicleFilter("all")} className={chipClass(vehicleFilter === "all")}>
-              Tous
+              {t("all")}
             </button>
             {vehicles.map((v) => (
               <button
@@ -112,10 +116,10 @@ function HistoriqueContent() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Station</label>
+          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{t("station")}</label>
           <div className="grid grid-rows-2 grid-flow-col gap-2 overflow-x-auto pb-1 -mx-4 px-4">
             <button onClick={() => setStationFilter("all")} className={chipClass(stationFilter === "all")}>
-              Toutes
+              {t("allFem")}
             </button>
             {stations.map((s) => (
               <button
@@ -130,7 +134,7 @@ function HistoriqueContent() {
         </div>
 
         <div>
-          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">Période</label>
+          <label className="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">{t("period")}</label>
           <div className="flex gap-2 overflow-x-auto pb-1 -mx-4 px-4 mb-3">
             {DATE_PRESETS.map((preset) => (
               <button
@@ -144,7 +148,7 @@ function HistoriqueContent() {
           </div>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-xs font-medium text-gray-400 dark:text-gray-500 mb-1">Du</label>
+              <label className="block text-xs font-medium text-gray-400 dark:text-gray-500 mb-1">{t("from")}</label>
               <input
                 type="date"
                 value={fromDate}
@@ -156,7 +160,7 @@ function HistoriqueContent() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-400 dark:text-gray-500 mb-1">Au</label>
+              <label className="block text-xs font-medium text-gray-400 dark:text-gray-500 mb-1">{t("to")}</label>
               <input
                 type="date"
                 value={toDate}
@@ -170,10 +174,12 @@ function HistoriqueContent() {
           </div>
         </div>
 
-        <p className="text-xs text-gray-400 dark:text-gray-500">{filtered.length} entrée(s)</p>
+        <p className="text-xs text-gray-400 dark:text-gray-500">
+          {filtered.length} {t("entriesCount")}
+        </p>
 
         {loading ? (
-          <p className="text-sm text-gray-400 dark:text-gray-500">Chargement...</p>
+          <p className="text-sm text-gray-400 dark:text-gray-500">{t("loading")}</p>
         ) : (
           <div className="space-y-2">
             {filtered.map((fill) => (
@@ -186,7 +192,7 @@ function HistoriqueContent() {
                     <p className="font-semibold text-gray-900 dark:text-gray-50">{fill.vehicles?.name}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{fill.stations?.name}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {new Date(fill.date).toLocaleDateString("fr-FR")} · {fill.mileage.toLocaleString("fr-FR")} km
+                      {new Date(fill.date).toLocaleDateString(locale)} · {fill.mileage.toLocaleString(locale)} km
                     </p>
                   </div>
                   <div className="flex items-start gap-3">
@@ -196,7 +202,7 @@ function HistoriqueContent() {
                     </div>
                     <button
                       onClick={() => setEditingFill(fill)}
-                      aria-label="Modifier ce plein"
+                      aria-label={t("editThisFill")}
                       className="p-2 -mr-2 text-gray-300 dark:text-gray-600 active:bg-gray-100 dark:active:bg-gray-800 rounded-lg"
                     >
                       ✎

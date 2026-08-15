@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { ChipPicker } from "@/components/ChipPicker";
 import { updateFill, FullFill, Vehicle, Station } from "@/lib/data";
+import { useLanguage } from "@/lib/i18n";
 
 export function EditFillModal({
   fill,
@@ -17,6 +18,7 @@ export function EditFillModal({
   onClose: () => void;
   onSaved: () => void;
 }) {
+  const { t } = useLanguage();
   const [vehicleId, setVehicleId] = useState<number | "">(fill.vehicle_id);
   const [stationId, setStationId] = useState<number | "">(fill.station_id);
   const [mileage, setMileage] = useState(String(fill.mileage));
@@ -31,7 +33,7 @@ export function EditFillModal({
 
   const save = async () => {
     if (!vehicleId || !stationId || !mileage || !pricePerLiter || !liters || !date) {
-      alert("Veuillez remplir tous les champs");
+      alert(t("fillAllFields"));
       return;
     }
     setSaving(true);
@@ -47,7 +49,7 @@ export function EditFillModal({
       });
       onSaved();
     } catch (e) {
-      alert("Erreur : " + (e as Error).message);
+      alert(t("genericError") + (e as Error).message);
     } finally {
       setSaving(false);
     }
@@ -58,7 +60,7 @@ export function EditFillModal({
       <div className="absolute inset-0 bg-black/30" onClick={onClose} />
       <div className="relative bg-white dark:bg-gray-900 w-full rounded-t-2xl p-4 pb-[max(1rem,env(safe-area-inset-bottom))] max-h-[85vh] overflow-y-auto space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">Modifier le plein</h2>
+          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-50">{t("editFillTitle")}</h2>
           <button
             onClick={onClose}
             className="p-2 text-gray-500 dark:text-gray-400 active:bg-gray-100 dark:active:bg-gray-800 rounded-lg"
@@ -67,17 +69,17 @@ export function EditFillModal({
           </button>
         </div>
 
-        <ChipPicker label="Véhicule" items={vehicles} selectedId={vehicleId} onSelect={setVehicleId} />
-        <ChipPicker label="Station" items={stations} selectedId={stationId} onSelect={setStationId} />
+        <ChipPicker label={t("vehicle")} items={vehicles} selectedId={vehicleId} onSelect={setVehicleId} />
+        <ChipPicker label={t("station")} items={stations} selectedId={stationId} onSelect={setStationId} />
 
         <div>
-          <label className={labelClass}>Date</label>
+          <label className={labelClass}>{t("date")}</label>
           <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputClass} />
         </div>
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelClass}>Prix / L (€)</label>
+            <label className={labelClass}>{t("pricePerLiter")}</label>
             <input
               type="number"
               inputMode="decimal"
@@ -88,7 +90,7 @@ export function EditFillModal({
             />
           </div>
           <div>
-            <label className={labelClass}>Litres</label>
+            <label className={labelClass}>{t("liters")}</label>
             <input
               type="number"
               inputMode="decimal"
@@ -101,7 +103,7 @@ export function EditFillModal({
         </div>
 
         <div>
-          <label className={labelClass}>Kilométrage (km)</label>
+          <label className={labelClass}>{t("mileage")}</label>
           <input
             type="number"
             inputMode="numeric"
@@ -116,7 +118,7 @@ export function EditFillModal({
           disabled={saving}
           className="w-full py-4 bg-indigo-600 text-white font-semibold rounded-xl text-base active:bg-indigo-700 disabled:opacity-50"
         >
-          {saving ? "Enregistrement..." : "Enregistrer les modifications"}
+          {saving ? t("saving") : t("saveChanges")}
         </button>
       </div>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import { useLanguage } from "@/lib/i18n";
 
 type Item = { id: number; name: string };
 
@@ -21,6 +22,7 @@ export function ChipPicker({
   extraAction?: { icon: ReactNode; onClick: () => void; loading?: boolean };
   rows?: 1 | 2;
 }) {
+  const { t } = useLanguage();
   const [adding, setAdding] = useState(false);
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -94,7 +96,7 @@ export function ChipPicker({
             type="text"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="Nom"
+            placeholder={t("namePlaceholder")}
             className="flex-1 min-w-0 px-4 py-2.5 border border-gray-200 dark:border-gray-700 rounded-lg text-base bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 placeholder:text-gray-400 dark:placeholder:text-gray-500"
           />
           <button
