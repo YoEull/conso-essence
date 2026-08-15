@@ -12,7 +12,7 @@ const SETTINGS_LINK = { href: "/parametres", icon: "⚙️", label: "Paramètres
 
 // Drag distance (as a fraction of screen width) needed to go from fully
 // closed to fully open — always relative, never a hardcoded pixel value.
-const OPEN_DRAG_FRACTION = 0.25;
+const OPEN_DRAG_FRACTION = 0.4;
 const HORIZONTAL_INTENT_PX = 10;
 
 function isInsideHorizontalScroller(target: EventTarget | null): boolean {
