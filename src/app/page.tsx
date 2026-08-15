@@ -18,6 +18,7 @@ import {
 import { ChipPicker } from "@/components/ChipPicker";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/lib/i18n";
+import { useUnits, VOLUME_EXAMPLES, DISTANCE_EXAMPLES } from "@/lib/units";
 
 const LONG_PRESS_MS = 500;
 const EDIT_WINDOW_MS = 8 * 60 * 60 * 1000;
@@ -26,6 +27,19 @@ export default function Home() {
   const router = useRouter();
   const { t, lang } = useLanguage();
   const locale = lang === "fr" ? "fr-FR" : "en-US";
+  const {
+    volumeUnit,
+    distanceUnit,
+    volumeLabel,
+    distanceLabel,
+    currencySymbol,
+    volumeToDisplay,
+    distanceToDisplay,
+    pricePerVolumeToDisplay,
+    volumeFromDisplay,
+    distanceFromDisplay,
+    pricePerVolumeFromDisplay,
+  } = useUnits();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [fills, setFills] = useState<Fill[]>([]);
@@ -35,9 +49,9 @@ export default function Home() {
   const pressMovedRef = useRef(false);
 
   const [selectedVehicleId, setSelectedVehicleId] = useState<number | "">("");
-  const [mileage, setMileage] = useState("");
-  const [pricePerLiter, setPricePerLiter] = useState("");
-  const [liters, setLiters] = useState("");
+  const [odometer, setOdometer] = useState("");
+  const [price, setPrice] = useState("");
+  const [volume, setVolume] = useState("");
   const [selectedStationId, setSelectedStationId] = useState<number | "">("");
   const [findingStation, setFindingStation] = useState(false);
 
@@ -102,7 +116,7 @@ export default function Home() {
   };
 
   const handleSubmit = async () => {
-    if (!selectedVehicleId || !mileage || !pricePerLiter || !liters || !selectedStationId) {
+    if (!selectedVehicleId || !odometer || !price || !volume || !selectedStationId) {
       alert(t("fillAllFields"));
       return;
     }
@@ -112,15 +126,15 @@ export default function Home() {
       await addFill({
         vehicle_id: Number(selectedVehicleId),
         station_id: Number(selectedStationId),
-        mileage: parseFloat(mileage),
-        price_per_liter: parseFloat(pricePerLiter),
-        liters: parseFloat(liters),
-        total_cost: Number((parseFloat(pricePerLiter) * parseFloat(liters)).toFixed(2)),
+        mileage: distanceFromDisplay(parseFloat(odometer)),
+        price_per_liter: pricePerVolumeFromDisplay(parseFloat(price)),
+        liters: volumeFromDisplay(parseFloat(volume)),
+        total_cost: Number((parseFloat(price) * parseFloat(volume)).toFixed(2)),
       });
 
-      setMileage("");
-      setPricePerLiter("");
-      setLiters("");
+      setOdometer("");
+      setPrice("");
+      setVolume("");
       setSelectedStationId("");
 
       await loadData();
@@ -131,8 +145,7 @@ export default function Home() {
     }
   };
 
-  const totalCost =
-    pricePerLiter && liters ? (parseFloat(pricePerLiter) * parseFloat(liters)).toFixed(2) : null;
+  const totalCost = price && volume ? (parseFloat(price) * parseFloat(volume)).toFixed(2) : null;
 
   const isEditableNow = (fill: Fill) => Date.now() - new Date(fill.date).getTime() <= EDIT_WINDOW_MS;
 
@@ -198,27 +211,31 @@ export default function Home() {
         <div className={`${blockClass} space-y-4`}>
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className={labelClass}>{t("pricePerLiter")}</label>
+              <label className={labelClass}>
+                {t("price")} / {volumeLabel} ({currencySymbol})
+              </label>
               <input
                 type="number"
                 inputMode="decimal"
                 step="0.001"
-                value={pricePerLiter}
-                onChange={(e) => setPricePerLiter(e.target.value)}
-                placeholder={t("pricePlaceholder")}
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder={`${t("exPrefix")} ${VOLUME_EXAMPLES[volumeUnit].price}`}
                 className={inputClass}
                 disabled={loading}
               />
             </div>
             <div>
-              <label className={labelClass}>{t("liters")}</label>
+              <label className={labelClass}>
+                {t("volume")} ({volumeLabel})
+              </label>
               <input
                 type="number"
                 inputMode="decimal"
                 step="0.01"
-                value={liters}
-                onChange={(e) => setLiters(e.target.value)}
-                placeholder={t("litersPlaceholder")}
+                value={volume}
+                onChange={(e) => setVolume(e.target.value)}
+                placeholder={`${t("exPrefix")} ${VOLUME_EXAMPLES[volumeUnit].volume}`}
                 className={inputClass}
                 disabled={loading}
               />
@@ -226,13 +243,15 @@ export default function Home() {
           </div>
 
           <div>
-            <label className={labelClass}>{t("mileage")}</label>
+            <label className={labelClass}>
+              {t("odometer")} ({distanceLabel})
+            </label>
             <input
               type="number"
               inputMode="numeric"
-              value={mileage}
-              onChange={(e) => setMileage(e.target.value)}
-              placeholder={t("mileagePlaceholder")}
+              value={odometer}
+              onChange={(e) => setOdometer(e.target.value)}
+              placeholder={`${t("exPrefix")} ${DISTANCE_EXAMPLES[distanceUnit]}`}
               className={inputClass}
               disabled={loading}
             />
@@ -255,12 +274,17 @@ export default function Home() {
                     <p className="font-semibold text-gray-900 dark:text-gray-50">{fill.vehicles?.name}</p>
                     <p className="text-sm text-gray-500 dark:text-gray-400">{fill.stations?.name}</p>
                     <p className="text-xs text-gray-400 dark:text-gray-500">
-                      {new Date(fill.date).toLocaleDateString(locale)} · {fill.mileage.toLocaleString(locale)} km
+                      {new Date(fill.date).toLocaleDateString(locale)} ·{" "}
+                      {Math.round(distanceToDisplay(fill.mileage)).toLocaleString(locale)} {distanceLabel}
                     </p>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-indigo-600 dark:text-indigo-400">{fill.total_cost} €</p>
-                    <p className="text-xs text-gray-400 dark:text-gray-500">{fill.liters} L</p>
+                    <p className="font-bold text-indigo-600 dark:text-indigo-400">
+                      {fill.total_cost} {currencySymbol}
+                    </p>
+                    <p className="text-xs text-gray-400 dark:text-gray-500">
+                      {volumeToDisplay(fill.liters).toFixed(1)} {volumeLabel}
+                    </p>
                   </div>
                 </div>
               ))}
@@ -272,7 +296,10 @@ export default function Home() {
       <footer className="sticky bottom-0 bg-white dark:bg-gray-900 border-t border-gray-100 dark:border-gray-800 px-4 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {totalCost && (
           <p className="text-center text-sm text-gray-500 dark:text-gray-400 mb-2">
-            {t("total")} : <span className="font-bold text-indigo-600 dark:text-indigo-400">{totalCost} €</span>
+            {t("total")} :{" "}
+            <span className="font-bold text-indigo-600 dark:text-indigo-400">
+              {totalCost} {currencySymbol}
+            </span>
           </p>
         )}
         <button

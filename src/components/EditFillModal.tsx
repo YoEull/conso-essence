@@ -4,6 +4,7 @@ import { useState } from "react";
 import { ChipPicker } from "@/components/ChipPicker";
 import { updateFill, FullFill, Vehicle, Station } from "@/lib/data";
 import { useLanguage } from "@/lib/i18n";
+import { useUnits } from "@/lib/units";
 
 export function EditFillModal({
   fill,
@@ -19,11 +20,22 @@ export function EditFillModal({
   onSaved: () => void;
 }) {
   const { t } = useLanguage();
+  const {
+    volumeLabel,
+    distanceLabel,
+    currencySymbol,
+    volumeToDisplay,
+    distanceToDisplay,
+    pricePerVolumeToDisplay,
+    volumeFromDisplay,
+    distanceFromDisplay,
+    pricePerVolumeFromDisplay,
+  } = useUnits();
   const [vehicleId, setVehicleId] = useState<number | "">(fill.vehicle_id);
   const [stationId, setStationId] = useState<number | "">(fill.station_id);
-  const [mileage, setMileage] = useState(String(fill.mileage));
-  const [pricePerLiter, setPricePerLiter] = useState(String(fill.price_per_liter));
-  const [liters, setLiters] = useState(String(fill.liters));
+  const [odometer, setOdometer] = useState(String(distanceToDisplay(fill.mileage)));
+  const [price, setPrice] = useState(String(pricePerVolumeToDisplay(fill.price_per_liter)));
+  const [volume, setVolume] = useState(String(volumeToDisplay(fill.liters)));
   const [date, setDate] = useState(fill.date.slice(0, 10));
   const [saving, setSaving] = useState(false);
 
@@ -32,7 +44,7 @@ export function EditFillModal({
   const labelClass = "block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2";
 
   const save = async () => {
-    if (!vehicleId || !stationId || !mileage || !pricePerLiter || !liters || !date) {
+    if (!vehicleId || !stationId || !odometer || !price || !volume || !date) {
       alert(t("fillAllFields"));
       return;
     }
@@ -41,10 +53,10 @@ export function EditFillModal({
       await updateFill(fill.id, {
         vehicle_id: Number(vehicleId),
         station_id: Number(stationId),
-        mileage: parseFloat(mileage),
-        price_per_liter: parseFloat(pricePerLiter),
-        liters: parseFloat(liters),
-        total_cost: Number((parseFloat(pricePerLiter) * parseFloat(liters)).toFixed(2)),
+        mileage: distanceFromDisplay(parseFloat(odometer)),
+        price_per_liter: pricePerVolumeFromDisplay(parseFloat(price)),
+        liters: volumeFromDisplay(parseFloat(volume)),
+        total_cost: Number((parseFloat(price) * parseFloat(volume)).toFixed(2)),
         date: new Date(date).toISOString(),
       });
       onSaved();
@@ -79,36 +91,42 @@ export function EditFillModal({
 
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className={labelClass}>{t("pricePerLiter")}</label>
+            <label className={labelClass}>
+              {t("price")} / {volumeLabel} ({currencySymbol})
+            </label>
             <input
               type="number"
               inputMode="decimal"
               step="0.001"
-              value={pricePerLiter}
-              onChange={(e) => setPricePerLiter(e.target.value)}
+              value={price}
+              onChange={(e) => setPrice(e.target.value)}
               className={inputClass}
             />
           </div>
           <div>
-            <label className={labelClass}>{t("liters")}</label>
+            <label className={labelClass}>
+              {t("volume")} ({volumeLabel})
+            </label>
             <input
               type="number"
               inputMode="decimal"
               step="0.01"
-              value={liters}
-              onChange={(e) => setLiters(e.target.value)}
+              value={volume}
+              onChange={(e) => setVolume(e.target.value)}
               className={inputClass}
             />
           </div>
         </div>
 
         <div>
-          <label className={labelClass}>{t("mileage")}</label>
+          <label className={labelClass}>
+            {t("odometer")} ({distanceLabel})
+          </label>
           <input
             type="number"
             inputMode="numeric"
-            value={mileage}
-            onChange={(e) => setMileage(e.target.value)}
+            value={odometer}
+            onChange={(e) => setOdometer(e.target.value)}
             className={inputClass}
           />
         </div>

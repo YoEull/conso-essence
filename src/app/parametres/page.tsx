@@ -5,7 +5,9 @@ import { AppHeader } from "@/components/AppHeader";
 import { EditableNameList } from "@/components/EditableNameList";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageToggle } from "@/components/LanguageToggle";
+import { UnitsSettings } from "@/components/UnitsSettings";
 import { useLanguage } from "@/lib/i18n";
+import { useUnits } from "@/lib/units";
 import {
   getVehicles,
   getStations,
@@ -19,6 +21,8 @@ import {
 export default function ParametresPage() {
   const { t, lang } = useLanguage();
   const locale = lang === "fr" ? "fr-FR" : "en-US";
+  const { volumeLabel, distanceLabel, currencySymbol, volumeToDisplay, distanceToDisplay, pricePerVolumeToDisplay } =
+    useUnits();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,10 +57,12 @@ export default function ParametresPage() {
           [t("date")]: new Date(f.date).toLocaleDateString(locale),
           [t("vehicle")]: f.vehicles?.name ?? "",
           [t("station")]: f.stations?.name ?? "",
-          [t("mileage")]: f.mileage,
-          [t("pricePerLiter")]: f.price_per_liter,
-          [t("liters")]: f.liters,
-          [t("totalCost")]: f.total_cost,
+          [`${t("odometer")} (${distanceLabel})`]: Math.round(distanceToDisplay(f.mileage)),
+          [`${t("price")} / ${volumeLabel} (${currencySymbol})`]: Number(
+            pricePerVolumeToDisplay(f.price_per_liter).toFixed(3)
+          ),
+          [`${t("volume")} (${volumeLabel})`]: Number(volumeToDisplay(f.liters).toFixed(2)),
+          [`${t("totalCost")} (${currencySymbol})`]: f.total_cost,
         }))
       );
       const vehiclesSheet = XLSX.utils.json_to_sheet(allVehicles.map((v) => ({ [t("vehicle")]: v.name })));
@@ -88,6 +94,11 @@ export default function ParametresPage() {
           <ThemeToggle />
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-4 mb-3">{t("language")}</h2>
           <LanguageToggle />
+        </section>
+
+        <section className={blockClass}>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("unitsTitle")}</h2>
+          <UnitsSettings />
         </section>
 
         <section className={blockClass}>
