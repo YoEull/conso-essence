@@ -2,11 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/AppHeader";
-import { EditableNameList } from "@/components/EditableNameList";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { LanguageToggle } from "@/components/LanguageToggle";
 import { UnitsSettings } from "@/components/UnitsSettings";
+import { GroupSettings } from "@/components/GroupSettings";
+import { UserProfile } from "@/components/UserProfile";
 import { useLanguage } from "@/lib/i18n";
+import { supabase } from "@/lib/supabase";
 import { currencySymbolFor, volumeLabelFor, distanceLabelFor } from "@/lib/units";
 import {
   getVehicles,
@@ -14,6 +16,12 @@ import {
   getAllFills,
   renameVehicle,
   renameStation,
+  deleteVehicle,
+  deleteStation,
+  setVehicleHidden,
+  setStationHidden,
+  upsertVehicle,
+  upsertStation,
   Vehicle,
   Station,
 } from "@/lib/data";
@@ -89,6 +97,11 @@ export default function ParametresPage() {
 
       <main className="flex-1 overflow-y-auto px-4 py-5 space-y-6 pb-10">
         <section className={blockClass}>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("profileTitle")}</h2>
+          <UserProfile />
+        </section>
+
+        <section className={blockClass}>
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("appearance")}</h2>
           <ThemeToggle />
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mt-4 mb-3">{t("language")}</h2>
@@ -112,35 +125,56 @@ export default function ParametresPage() {
           </button>
         </section>
 
-        <section className={blockClass}>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("vehicles")}</h2>
+        <section>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3 px-1">{t("groupTitle")}</h2>
           {loading ? (
             <p className="text-sm text-gray-400 dark:text-gray-500">{t("loading")}</p>
           ) : (
-            <EditableNameList
-              items={vehicles}
-              onRename={async (id, name) => {
+            <GroupSettings
+              vehicles={vehicles}
+              stations={stations}
+              onRenameVehicle={async (id, name) => {
                 await renameVehicle(id, name);
+                await load();
+              }}
+              onRenameStation={async (id, name) => {
+                await renameStation(id, name);
+                await load();
+              }}
+              onDeleteVehicle={async (id) => {
+                await deleteVehicle(id);
+                await load();
+              }}
+              onDeleteStation={async (id) => {
+                await deleteStation(id);
+                await load();
+              }}
+              onToggleHiddenVehicle={async (id, hidden) => {
+                await setVehicleHidden(id, hidden);
+                await load();
+              }}
+              onToggleHiddenStation={async (id, hidden) => {
+                await setStationHidden(id, hidden);
+                await load();
+              }}
+              onAddVehicle={async (groupId, name) => {
+                await upsertVehicle(groupId, name);
+                await load();
+              }}
+              onAddStation={async (groupId, name) => {
+                await upsertStation(groupId, name);
                 await load();
               }}
             />
           )}
         </section>
 
-        <section className={blockClass}>
-          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("stations")}</h2>
-          {loading ? (
-            <p className="text-sm text-gray-400 dark:text-gray-500">{t("loading")}</p>
-          ) : (
-            <EditableNameList
-              items={stations}
-              onRename={async (id, name) => {
-                await renameStation(id, name);
-                await load();
-              }}
-            />
-          )}
-        </section>
+        <button
+          onClick={() => supabase.auth.signOut()}
+          className="w-full py-3 text-red-600 dark:text-red-400 font-semibold rounded-xl border border-red-200 dark:border-red-900"
+        >
+          {t("signOut")}
+        </button>
       </main>
     </div>
   );

@@ -4,7 +4,16 @@ import { Suspense, useEffect, useMemo, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { AppHeader } from "@/components/AppHeader";
 import { EditFillModal } from "@/components/EditFillModal";
-import { getAllFills, getVehicles, getStations, FullFill, Vehicle, Station } from "@/lib/data";
+import {
+  getAllFills,
+  getVehicles,
+  getStations,
+  getMyGroups,
+  isEffectivelyHidden,
+  FullFill,
+  Vehicle,
+  Station,
+} from "@/lib/data";
 import { useLanguage } from "@/lib/i18n";
 import { currencySymbolFor, volumeLabelFor, distanceLabelFor } from "@/lib/units";
 
@@ -39,14 +48,16 @@ function HistoriqueContent() {
   const [toDate, setToDate] = useState("");
   const [activePreset, setActivePreset] = useState<string | null>(null);
   const [editingFill, setEditingFill] = useState<FullFill | null>(null);
+  const [hiddenGroupIds, setHiddenGroupIds] = useState<Set<number>>(new Set());
 
   const load = async () => {
     setLoading(true);
     try {
-      const [f, v, s] = await Promise.all([getAllFills(), getVehicles(), getStations()]);
+      const [f, v, s, groups] = await Promise.all([getAllFills(), getVehicles(), getStations(), getMyGroups()]);
       setFills(f);
       setVehicles(v);
       setStations(s);
+      setHiddenGroupIds(new Set(groups.filter((g) => g.hidden).map((g) => g.id)));
     } catch (e) {
       alert(t("loadError") + (e as Error).message);
     } finally {
@@ -68,6 +79,12 @@ function HistoriqueContent() {
       router.replace("/historique");
     }
   }, [fills, searchParams, router]);
+
+  // Hidden vehicles/stations drop out of the filter chips, but stay
+  // available to EditFillModal (below) so editing an old fill that used
+  // one still shows it correctly selected.
+  const visibleVehicles = vehicles.filter((v) => !isEffectivelyHidden(v, hiddenGroupIds));
+  const visibleStations = stations.filter((s) => !isEffectivelyHidden(s, hiddenGroupIds));
 
   const applyPreset = (key: string, days: number) => {
     if (activePreset === key) {
@@ -104,7 +121,7 @@ function HistoriqueContent() {
             <button onClick={() => setVehicleFilter("all")} className={chipClass(vehicleFilter === "all")}>
               {t("all")}
             </button>
-            {vehicles.map((v) => (
+            {visibleVehicles.map((v) => (
               <button
                 key={v.id}
                 onClick={() => setVehicleFilter(vehicleFilter === v.id ? "all" : v.id)}
@@ -122,7 +139,7 @@ function HistoriqueContent() {
             <button onClick={() => setStationFilter("all")} className={chipClass(stationFilter === "all")}>
               {t("allFem")}
             </button>
-            {stations.map((s) => (
+            {visibleStations.map((s) => (
               <button
                 key={s.id}
                 onClick={() => setStationFilter(stationFilter === s.id ? "all" : s.id)}

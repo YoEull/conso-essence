@@ -10,15 +10,18 @@ import {
   getStations,
   getFills,
   getUsageStats,
+  getMyGroups,
   rankByUsage,
   upsertVehicle,
   upsertStation,
   addFill,
+  isEffectivelyHidden,
 } from "@/lib/data";
 import { ChipPicker } from "@/components/ChipPicker";
 import { AppHeader } from "@/components/AppHeader";
 import { useLanguage } from "@/lib/i18n";
 import { useUnits, VOLUME_EXAMPLES, DISTANCE_EXAMPLES, currencySymbolFor, volumeLabelFor, distanceLabelFor } from "@/lib/units";
+import { useAuth } from "@/lib/auth";
 
 const LONG_PRESS_MS = 500;
 const EDIT_WINDOW_MS = 8 * 60 * 60 * 1000;
@@ -28,8 +31,10 @@ export default function Home() {
   const { t, lang } = useLanguage();
   const locale = lang === "fr" ? "fr-FR" : "en-US";
   const { volumeUnit, distanceUnit, currency, volumeLabel, distanceLabel, currencySymbol } = useUnits();
+  const { groupId } = useAuth();
   const [vehicles, setVehicles] = useState<Vehicle[]>([]);
   const [stations, setStations] = useState<Station[]>([]);
+  const [groups, setGroups] = useState<{ id: number; name: string; hidden: boolean }[]>([]);
   const [fills, setFills] = useState<Fill[]>([]);
   const [loading, setLoading] = useState(false);
   const [longPressFill, setLongPressFill] = useState<Fill | null>(null);
@@ -46,14 +51,27 @@ export default function Home() {
   const loadData = async () => {
     setLoading(true);
     try {
-      const [v, s, f, usage] = await Promise.all([
+      const [v, s, f, usage, myGroups] = await Promise.all([
         getVehicles(),
         getStations(),
         getFills(),
         getUsageStats(),
+        getMyGroups(),
       ]);
-      setVehicles(rankByUsage(v, usage.map((u) => ({ id: u.vehicle_id }))));
-      setStations(rankByUsage(s, usage.map((u) => ({ id: u.station_id }))));
+      const hiddenGroupIds = new Set(myGroups.filter((g) => g.hidden).map((g) => g.id));
+      setGroups(myGroups);
+      setVehicles(
+        rankByUsage(
+          v.filter((item) => !isEffectivelyHidden(item, hiddenGroupIds)),
+          usage.map((u) => ({ id: u.vehicle_id }))
+        )
+      );
+      setStations(
+        rankByUsage(
+          s.filter((item) => !isEffectivelyHidden(item, hiddenGroupIds)),
+          usage.map((u) => ({ id: u.station_id }))
+        )
+      );
       setFills(f);
     } catch (e) {
       alert(t("loadError") + (e as Error).message);
@@ -74,16 +92,23 @@ export default function Home() {
     if (id) localStorage.setItem("lastVehicleId", String(id));
   };
 
-  const addVehicle = async (name: string) => {
-    const vehicle = await upsertVehicle(name);
+  const addVehicle = async (name: string, targetGroupId?: number) => {
+    const resolvedGroupId = targetGroupId ?? groupId;
+    if (!resolvedGroupId) return;
+    const vehicle = await upsertVehicle(resolvedGroupId, name);
     setVehicles((prev) => (prev.some((v) => v.id === vehicle.id) ? prev : [vehicle, ...prev]));
     selectVehicle(vehicle.id);
   };
 
   const selectStation = (id: number | "") => setSelectedStationId(id);
 
+  // A new station always joins the selected vehicle's group — the picker's
+  // "+" is blocked until a vehicle is chosen (see ChipPicker below), so
+  // selectedVehicleId is guaranteed to resolve to a real group_id here.
   const addStation = async (name: string) => {
-    const station = await upsertStation(name);
+    const vehicleGroupId = vehicles.find((v) => v.id === selectedVehicleId)?.group_id ?? groupId;
+    if (!vehicleGroupId) return;
+    const station = await upsertStation(vehicleGroupId, name);
     setStations((prev) => (prev.some((s) => s.id === station.id) ? prev : [station, ...prev]));
     selectStation(station.id);
   };
@@ -184,6 +209,7 @@ export default function Home() {
             selectedId={selectedVehicleId}
             onSelect={selectVehicle}
             onAddNew={addVehicle}
+            groupOptions={groups.filter((g) => !g.hidden)}
           />
         </div>
 
@@ -196,6 +222,7 @@ export default function Home() {
             onAddNew={addStation}
             extraAction={{ icon: "📍", onClick: findNearestStation, loading: findingStation }}
             rows={2}
+            addNewBlocked={!selectedVehicleId ? t("selectVehicleFirst") : undefined}
           />
         </div>
 
