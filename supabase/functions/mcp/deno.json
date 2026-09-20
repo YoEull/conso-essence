@@ -1,0 +1,11 @@
+{
+  "compilerOptions": { "lib": ["deno.window", "deno.ns"], "strict": true },
+  "imports": {
+    "hono": "npm:hono@^4.6.14",
+    "hono/cors": "npm:hono@^4.6.14/cors",
+    "mcp-lite": "npm:mcp-lite@0.8.2",
+    "zod": "npm:zod@^4.1.12",
+    "jose": "npm:jose@^5.9.6",
+    "@supabase/supabase-js": "npm:@supabase/supabase-js@^2.109.0"
+  }
+}

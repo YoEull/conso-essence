@@ -104,6 +104,13 @@ const translations = {
     addVehiclePlaceholder: "Ajouter un véhicule",
     addStationPlaceholder: "Ajouter une station",
     selectVehicleFirst: "Sélectionnez d'abord un véhicule.",
+    consentTitle: "Autoriser l'accès",
+    consentWantsAccess: "demande l'accès à vos pleins, véhicules et stations (avec vos droits de groupe).",
+    consentReturnsTo: "Vous serez redirigé vers :",
+    consentUntrusted: "Cette application n'est pas dans la liste des clients de confiance : l'autorisation est bloquée.",
+    consentAllow: "Autoriser",
+    consentDeny: "Refuser",
+    consentMissingId: "Demande d'autorisation invalide (identifiant manquant).",
   },
   en: {
     appTitle: "Fuel Tracker",
@@ -204,6 +211,13 @@ const translations = {
     addVehiclePlaceholder: "Add a vehicle",
     addStationPlaceholder: "Add a station",
     selectVehicleFirst: "Select a vehicle first.",
+    consentTitle: "Authorize access",
+    consentWantsAccess: "is requesting access to your fill-ups, vehicles and stations (with your group permissions).",
+    consentReturnsTo: "You will be redirected to:",
+    consentUntrusted: "This application is not on the trusted client list: authorization is blocked.",
+    consentAllow: "Allow",
+    consentDeny: "Deny",
+    consentMissingId: "Invalid authorization request (missing identifier).",
   },
 } as const;
 

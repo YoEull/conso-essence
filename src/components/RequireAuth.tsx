@@ -11,7 +11,9 @@ export function RequireAuth({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (!loading && !session && pathname !== "/login") {
-      router.replace("/login");
+      // Keep the current URL (e.g. an OAuth consent request) so login can return to it.
+      const target = window.location.pathname + window.location.search;
+      router.replace(pathname === "/" ? "/login" : `/login?redirect=${encodeURIComponent(target)}`);
     }
   }, [loading, session, pathname, router]);
 

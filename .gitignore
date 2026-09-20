@@ -42,3 +42,6 @@ next-env.d.ts
 
 # local dev helper (machine-specific nvm path, not needed to run/deploy the project)
 /dev.sh
+
+# supabase CLI cache
+supabase/.temp/

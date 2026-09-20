@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useLanguage } from "@/lib/i18n";
+import { safeRedirectPath } from "@/lib/safeRedirect";
 
 export default function LoginPage() {
   const { t } = useLanguage();
@@ -15,9 +16,10 @@ export default function LoginPage() {
     setSending(true);
     setError(null);
     try {
+      const redirect = safeRedirectPath(new URLSearchParams(window.location.search).get("redirect"));
       const { error } = await supabase.auth.signInWithOtp({
         email,
-        options: { emailRedirectTo: window.location.origin },
+        options: { emailRedirectTo: window.location.origin + (redirect ?? "") },
       });
       if (error) throw error;
       setSent(true);
