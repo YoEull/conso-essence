@@ -45,6 +45,18 @@ function pick(kind: "vehicle" | "station", query: string, items: Item[]): Item |
   return fail(`No ${kind} matches "${query}". Existing ${kind}s: ${names(items)}. Ask the user which one they mean.`);
 }
 
+// "to" is exclusive in SQL, so a date-only "to" (2026-03-31) means "through
+// the end of that day". Returns null for unparsable input.
+function bound(value: string | undefined, isEnd: boolean): string | null | undefined {
+  if (!value) return undefined;
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return null;
+  if (isEnd && /^\d{4}-\d{2}-\d{2}$/.test(value)) d.setUTCDate(d.getUTCDate() + 1);
+  return d.toISOString();
+}
+
+const DATE_HELP = "ISO date, e.g. 2026-01-31.";
+
 function buildServer(sb: SupabaseClient): McpServer {
   const mcp = new McpServer({
     name: "suivi-essence",
@@ -65,17 +77,27 @@ function buildServer(sb: SupabaseClient): McpServer {
   });
 
   mcp.tool("get_recent_fills", {
-    description: "Show the most recent fill-ups, optionally for one vehicle. Useful to recall the last odometer reading.",
+    description:
+      "List individual fill-ups, newest first, optionally for one vehicle and/or a date range. " +
+      "Useful to recall the last odometer reading or to inspect specific fills. " +
+      "For totals, averages or consumption use get_stats instead of computing by hand.",
     inputSchema: z.object({
       vehicle: z.string().optional().describe("Vehicle name (partial match allowed). Omit for all vehicles."),
-      limit: z.number().int().min(1).max(20).optional().describe("How many fills to return (default 5)."),
+      from: z.string().optional().describe(`Only fills on or after this date. ${DATE_HELP}`),
+      to: z.string().optional().describe(`Only fills up to and including this date. ${DATE_HELP}`),
+      limit: z.number().int().min(1).max(100).optional().describe("How many fills to return (default 5, max 100)."),
     }),
-    handler: async ({ vehicle, limit }: { vehicle?: string; limit?: number }): Promise<Reply> => {
+    handler: async ({ vehicle, from, to, limit }: { vehicle?: string; from?: string; to?: string; limit?: number }): Promise<Reply> => {
+      const gte = bound(from, false);
+      const lt = bound(to, true);
+      if (gte === null || lt === null) return fail("Invalid date. Use ISO format, e.g. 2026-01-31.");
       let query = sb
         .from("fills")
         .select("date, odometer, distance_unit, price_per_unit, volume, volume_unit, total_cost, currency, vehicles(name), stations(name)")
         .order("date", { ascending: false })
         .limit(limit ?? 5);
+      if (gte) query = query.gte("date", gte);
+      if (lt) query = query.lt("date", lt);
       if (vehicle) {
         const v = pick("vehicle", vehicle, await visibleItems(sb, "vehicles"));
         if ("content" in v) return v;
@@ -83,11 +105,48 @@ function buildServer(sb: SupabaseClient): McpServer {
       }
       const { data, error } = await query;
       if (error) return fail(error.message);
-      if (!data.length) return ok("No fill-ups yet.");
+      if (!data.length) return ok("No fill-ups found for this selection.");
       // deno-lint-ignore no-explicit-any
       return ok((data as any[]).map((f) =>
         `${f.date.slice(0, 10)} | ${f.vehicles?.name} @ ${f.stations?.name} | ${f.odometer} ${f.distance_unit} | ` +
         `${f.volume} ${f.volume_unit} at ${f.price_per_unit}/${f.volume_unit} = ${f.total_cost} ${f.currency}`
+      ).join("\n"));
+    },
+  });
+
+  mcp.tool("get_stats", {
+    description:
+      "Exact statistics computed by the database, per vehicle: number of fills, total cost, total volume, " +
+      "average price per unit, distance driven and consumption per 100 distance units. " +
+      "Optionally restricted to a vehicle and/or a date range (e.g. a month or a year). " +
+      "Consumption assumes every fill is a full tank, so present it as approximate.",
+    inputSchema: z.object({
+      vehicle: z.string().optional().describe("Vehicle name (partial match allowed). Omit for all vehicles."),
+      from: z.string().optional().describe(`Start of the period, inclusive. ${DATE_HELP}`),
+      to: z.string().optional().describe(`End of the period, inclusive. ${DATE_HELP}`),
+    }),
+    handler: async ({ vehicle, from, to }: { vehicle?: string; from?: string; to?: string }): Promise<Reply> => {
+      const p_from = bound(from, false);
+      const p_to = bound(to, true);
+      if (p_from === null || p_to === null) return fail("Invalid date. Use ISO format, e.g. 2026-01-31.");
+      let vehicleId: number | undefined;
+      if (vehicle) {
+        const v = pick("vehicle", vehicle, await visibleItems(sb, "vehicles"));
+        if ("content" in v) return v;
+        vehicleId = v.id;
+      }
+      const { data, error } = await sb.rpc("fuel_stats", {
+        p_from: p_from ?? null, p_to: p_to ?? null, p_vehicle_id: vehicleId ?? null,
+      });
+      if (error) return fail(error.message);
+      if (!data.length) return ok("No fill-ups found for this selection.");
+      // deno-lint-ignore no-explicit-any
+      return ok((data as any[]).map((r) =>
+        `${r.vehicle} (${r.currency}): ${r.fills_count} fills, ${r.total_cost} ${r.currency} total, ` +
+        `${r.total_volume} ${r.volume_unit}, avg ${r.avg_price_per_unit}/${r.volume_unit}, ` +
+        `distance ${r.total_distance ?? "n/a"} ${r.distance_unit}, ` +
+        `consumption ${r.consumption_per_100 ?? "n/a"} ${r.volume_unit}/100 ${r.distance_unit} (approx.), ` +
+        `${r.first_fill.slice(0, 10)} to ${r.last_fill.slice(0, 10)}`
       ).join("\n"));
     },
   });

@@ -60,6 +60,13 @@ async function main() {
   await A.sb.from("vehicles").insert({ group_id: gA, name: "Clio Test" });
   await A.sb.from("stations").insert([{ group_id: gA, name: "Station U Test" }, { group_id: gA, name: "Leclerc Test" }]);
   await B.sb.from("vehicles").insert({ group_id: gB, name: "Zoe Test" });
+  // Known history for the stats checks (separate vehicle so it doesn't mix with create_fill tests).
+  const { data: sv } = await A.sb.from("vehicles").insert({ group_id: gA, name: "Stats Test" }).select("id").single();
+  const { data: su } = await A.sb.from("stations").select("id").eq("name", "Leclerc Test").single();
+  const hist = [["2026-01-10", 1000, 40, 1.5, 60], ["2026-02-10", 1500, 30, 1.6, 48], ["2026-03-10", 2100, 42, 1.7, 71.4]];
+  await A.sb.from("fills").insert(hist.map(([d, odo, vol, p, tot]) => ({
+    vehicle_id: sv.id, station_id: su.id, date: `${d}T12:00:00Z`, odometer: odo, price_per_unit: p, volume: vol, total_cost: tot,
+  })));
 
   try {
     const noAuth = await fetch(MCP_URL, { method: "POST", headers: { "content-type": "application/json" }, body: "{}" });
@@ -71,7 +78,7 @@ async function main() {
     const client = await mcpClient(A.token);
     const { tools } = await client.listTools();
     const toolNames = tools.map((t) => t.name).sort();
-    check("exposes the 4 tools", JSON.stringify(toolNames) === JSON.stringify(["create_fill", "get_recent_fills", "list_stations", "list_vehicles"]), toolNames.join());
+    check("exposes the 5 tools", JSON.stringify(toolNames) === JSON.stringify(["create_fill", "get_recent_fills", "get_stats", "list_stations", "list_vehicles"]), toolNames.join());
     const req = tools.find((t) => t.name === "create_fill")?.inputSchema.required ?? [];
     check("create_fill requires vehicle, station, price_per_unit, volume, odometer",
       ["vehicle", "station", "price_per_unit", "volume", "odometer"].every((k) => req.includes(k)), req.join());
@@ -109,11 +116,27 @@ async function main() {
 
     const recent = text(await client.callTool({ name: "get_recent_fills", arguments: { vehicle: "Clio", limit: 3 } }));
     check("get_recent_fills lists fills", recent.split("\n").length === 3 && recent.includes("Clio Test"), recent);
+
+    const stat = async (args) => text(await client.callTool({ name: "get_stats", arguments: args }));
+    const all = await stat({ vehicle: "Stats Test" });
+    check("get_stats: totals over full history", /3 fills, 179\.4 EUR/.test(all) && all.includes("112 L") && /distance 1100 km/.test(all), all);
+    check("get_stats: consumption (full-tank method)", all.includes("consumption 6.55 L/100 km"), all);
+    const feb = await stat({ vehicle: "Stats Test", from: "2026-02-01", to: "2026-02-28" });
+    check("get_stats: date range, distance uses fill before the period", /1 fills, 48 EUR/.test(feb) && /distance 500 km/.test(feb) && feb.includes("consumption 6 L/100 km"), feb);
+    const mar = await stat({ vehicle: "Stats Test", from: "2026-03-10", to: "2026-03-10" });
+    check("get_stats: date-only 'to' includes that whole day", /1 fills, 71.4 EUR/.test(mar), mar);
+    check("get_stats: empty period", (await stat({ vehicle: "Stats Test", from: "2027-01-01" })).startsWith("No fill-ups"));
+    const badDate = await client.callTool({ name: "get_stats", arguments: { from: "hier" } });
+    check("get_stats: invalid date is rejected clearly", badDate.isError && /Invalid date/.test(text(badDate)), text(badDate));
+    const ranged = text(await client.callTool({ name: "get_recent_fills", arguments: { vehicle: "Stats Test", from: "2026-02-15", limit: 10 } }));
+    check("get_recent_fills: date filter", ranged.split("\n").length === 1 && ranged.includes("2026-03-10"), ranged);
     await client.close();
 
     const clientB = await mcpClient(B.token);
     const vB = text(await clientB.callTool({ name: "list_vehicles", arguments: {} }));
     check("B sees only own vehicle", vB.includes("Zoe Test") && !vB.includes("Clio Test"), vB);
+    const sB = text(await clientB.callTool({ name: "get_stats", arguments: {} }));
+    check("B's stats do not include A's data (RLS)", !sB.includes("Stats Test") && !sB.includes("Clio Test"), sB);
     await clientB.close();
   } finally {
     for (const g of groupIds) {
