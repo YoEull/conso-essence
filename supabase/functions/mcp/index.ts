@@ -8,7 +8,7 @@ import { McpServer, StreamableHttpTransport } from "mcp-lite";
 import { z } from "zod";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { createRemoteJWKSet, jwtVerify } from "jose";
+import { createRemoteJWKSet, type JWTPayload, jwtVerify } from "jose";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { resolveByName } from "./match.mjs";
 
@@ -57,12 +57,55 @@ function bound(value: string | undefined, isEnd: boolean): string | null | undef
 
 const DATE_HELP = "ISO date, e.g. 2026-01-31.";
 
-function buildServer(sb: SupabaseClient): McpServer {
+// Failed tool calls (handler errors and schema-validation rejections) are
+// stored so we can see where LLMs struggle. Never lets logging break a call.
+function logFailures(mcp: McpServer, sb: SupabaseClient, userId: string, clientId: string | null) {
+  // deno-lint-ignore no-explicit-any
+  const record = async (req: any, error: string) => {
+    try {
+      if (req?.method !== "tools/call") return;
+      const args = JSON.stringify(req.params?.arguments ?? {});
+      await sb.from("mcp_calls").insert({
+        user_id: userId,
+        client_id: clientId,
+        tool: String(req.params?.name ?? "?"),
+        arguments: args.length > 4000 ? { truncated: true } : JSON.parse(args),
+        error: error.slice(0, 1000),
+      });
+    } catch (e) {
+      console.error("mcp_calls log failed", e);
+    }
+  };
+
+  // Schema-validation failures throw before the handler runs, so they surface here.
+  mcp.onError(async (err, ctx) => {
+    ctx.state.logged = true;
+    await record(ctx.request, err instanceof Error ? err.message : String(err));
+    return undefined;
+  });
+
+  // Errors returned by our own handlers (isError results).
+  mcp.use(async (ctx, next) => {
+    await next();
+    if (ctx.state.logged) return;
+    // deno-lint-ignore no-explicit-any
+    const res = ctx.response as any;
+    const error = res?.error
+      ? `${res.error.code}: ${res.error.message} ${JSON.stringify(res.error.data ?? "")}`
+      : res?.result?.isError
+      ? String(res.result.content?.[0]?.text ?? "error")
+      : null;
+    if (error) await record(ctx.request, error);
+  });
+}
+
+function buildServer(sb: SupabaseClient, userId: string, clientId: string | null): McpServer {
   const mcp = new McpServer({
     name: "suivi-essence",
     version: "1.0.0",
     schemaAdapter: (schema) => z.toJSONSchema(schema as z.ZodType),
   });
+  logFailures(mcp, sb, userId, clientId);
 
   mcp.tool("list_vehicles", {
     description: "List the user's vehicles (across all their groups). Use it to check which vehicles exist.",
@@ -243,8 +286,9 @@ const unauthorized = () =>
 const handleMcp = async (req: Request): Promise<Response> => {
   const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) return unauthorized();
+  let payload: JWTPayload;
   try {
-    await jwtVerify(token, jwks, { issuer: ISSUER });
+    ({ payload } = await jwtVerify(token, jwks, { issuer: ISSUER }));
   } catch {
     return unauthorized();
   }
@@ -252,7 +296,7 @@ const handleMcp = async (req: Request): Promise<Response> => {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
-  return new StreamableHttpTransport().bind(buildServer(sb))(req);
+  return new StreamableHttpTransport().bind(buildServer(sb, String(payload.sub), (payload.client_id as string | undefined) ?? null))(req);
 };
 
 app.all("/", (c) => handleMcp(c.req.raw));

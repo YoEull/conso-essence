@@ -132,6 +132,17 @@ async function main() {
     check("get_recent_fills: date filter", ranged.split("\n").length === 1 && ranged.includes("2026-03-10"), ranged);
     await client.close();
 
+    const { data: logs } = await admin.from("mcp_calls").select("tool, arguments, error").eq("user_id", A.id);
+    const has = (tool, re) => logs?.some((l) => l.tool === tool && re.test(l.error));
+    check("failed calls are logged (validation error)", has("create_fill", /odometer|Invalid|-32602/i), JSON.stringify(logs));
+    check("failed calls are logged (unknown vehicle) with arguments", logs?.some((l) => l.arguments?.vehicle === "Peugeot" && /No vehicle/.test(l.error)), JSON.stringify(logs));
+    check("invalid date failure is logged", has("get_stats", /Invalid date/));
+    check("successful calls are not logged", !logs?.some((l) => /^(Saved|No fill-ups)/.test(l.error)) && !logs?.some((l) => l.tool === "list_vehicles"), JSON.stringify(logs));
+    const own = await A.sb.from("mcp_calls").select("id");
+    check("user cannot read the log back (not even their own)", !!own.error || own.data.length === 0, JSON.stringify(own));
+    const spoof = await A.sb.from("mcp_calls").insert({ user_id: B.id, tool: "x", error: "x" });
+    check("user cannot write a log row for someone else", !!spoof.error);
+
     const clientB = await mcpClient(B.token);
     const vB = text(await clientB.callTool({ name: "list_vehicles", arguments: {} }));
     check("B sees only own vehicle", vB.includes("Zoe Test") && !vB.includes("Clio Test"), vB);
@@ -150,6 +161,8 @@ async function main() {
     }
     await admin.auth.admin.deleteUser(A.id);
     await admin.auth.admin.deleteUser(B.id);
+    const { count } = await admin.from("mcp_calls").select("*", { count: "exact", head: true }).in("user_id", [A.id, B.id]);
+    check("log rows are deleted with the user (cascade)", count === 0, String(count));
     console.log("\nCleaned up.");
   }
   console.log(ok ? "\nALL CHECKS PASSED" : "\nSOME CHECKS FAILED");
