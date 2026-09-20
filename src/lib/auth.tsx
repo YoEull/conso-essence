@@ -39,6 +39,21 @@ async function resolvePrimaryGroupId(session: Session): Promise<number> {
   return newId as number;
 }
 
+// On startup the session is applied twice at nearly the same time (getSession
+// and the auth-state event). Without sharing the in-flight lookup, both saw
+// "no group yet" and each created one, leaving new users with duplicates.
+const inflight = new Map<string, Promise<number>>();
+
+function resolvePrimaryGroupIdOnce(session: Session): Promise<number> {
+  const key = session.user.id;
+  let promise = inflight.get(key);
+  if (!promise) {
+    promise = resolvePrimaryGroupId(session).finally(() => inflight.delete(key));
+    inflight.set(key, promise);
+  }
+  return promise;
+}
+
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null);
   const [groupId, setGroupId] = useState<number | null>(null);
@@ -56,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         return;
       }
       try {
-        const id = await resolvePrimaryGroupId(newSession);
+        const id = await resolvePrimaryGroupIdOnce(newSession);
         if (active) {
           setGroupId(id);
           setError(null);
@@ -89,7 +104,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const refreshGroupId = async () => {
     if (!session) return;
     try {
-      const id = await resolvePrimaryGroupId(session);
+      const id = await resolvePrimaryGroupIdOnce(session);
       setGroupId(id);
       setError(null);
     } catch (e) {

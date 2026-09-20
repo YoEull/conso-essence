@@ -7,6 +7,7 @@ import { LanguageToggle } from "@/components/LanguageToggle";
 import { UnitsSettings } from "@/components/UnitsSettings";
 import { GroupSettings } from "@/components/GroupSettings";
 import { UserProfile } from "@/components/UserProfile";
+import { ConnectedApps } from "@/components/ConnectedApps";
 import { useLanguage } from "@/lib/i18n";
 import { supabase } from "@/lib/supabase";
 import { currencySymbolFor, volumeLabelFor, distanceLabelFor } from "@/lib/units";
@@ -99,6 +100,11 @@ export default function ParametresPage() {
         <section className={blockClass}>
           <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("profileTitle")}</h2>
           <UserProfile />
+        </section>
+
+        <section className={blockClass}>
+          <h2 className="text-sm font-semibold text-gray-500 dark:text-gray-400 mb-3">{t("connectedAppsTitle")}</h2>
+          <ConnectedApps />
         </section>
 
         <section className={blockClass}>

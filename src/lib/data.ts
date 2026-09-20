@@ -288,3 +288,16 @@ export async function deleteGroup(groupId: number): Promise<void> {
   const emailName = userData.user?.email?.split("@")[0] ?? "Groupe";
   await createGroup(`Groupe de ${displayName || emailName}`);
 }
+
+export type ConnectedApp = { clientId: string; name: string; grantedAt: string };
+
+export async function getConnectedApps(): Promise<ConnectedApp[]> {
+  const { data, error } = await supabase.auth.oauth.listGrants();
+  if (error) throw error;
+  return data.map((g) => ({ clientId: g.client.id, name: g.client.name, grantedAt: g.granted_at }));
+}
+
+export async function revokeConnectedApp(clientId: string): Promise<void> {
+  const { error } = await supabase.auth.oauth.revokeGrant({ clientId });
+  if (error) throw error;
+}

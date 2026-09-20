@@ -296,6 +296,10 @@ const handleMcp = async (req: Request): Promise<Response> => {
     global: { headers: { Authorization: `Bearer ${token}` } },
     auth: { persistSession: false, autoRefreshToken: false },
   });
+  // The JWT signature stays valid until expiry even after the user revokes the
+  // connector; asking Auth confirms the underlying session still exists.
+  const { error: sessionError } = await sb.auth.getUser(token);
+  if (sessionError) return unauthorized();
   return new StreamableHttpTransport().bind(buildServer(sb, String(payload.sub), (payload.client_id as string | undefined) ?? null))(req);
 };
 
